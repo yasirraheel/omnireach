@@ -329,8 +329,9 @@ class WhatsappChatController extends Controller
             $conversation = $conversation->load(["gateway"]);
             $gateway = $conversation->gateway;
 
-            // Dispatch immediately for real-time chat (no queue delay)
-            SendWhatsappConversationMessage::dispatchSync(
+            // Use dispatch() instead of dispatchSync() to run in background queue
+            // This prevents the UI from hanging while waiting for Node service
+            SendWhatsappConversationMessage::dispatch(
                 to: $conversation->contact->whatsapp_contact,
                 messageStatus: $messageStatus,
                 gateway: $gateway,

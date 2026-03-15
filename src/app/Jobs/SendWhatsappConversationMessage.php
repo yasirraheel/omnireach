@@ -42,8 +42,7 @@ class SendWhatsappConversationMessage implements ShouldQueue
         $this->mediaUrl         = $mediaUrl;
         $this->mediaType        = $mediaType;
 
-        // Note: Chat messages use dispatchSync() for immediate delivery
-        // This queue setting only applies if dispatch() is used instead
+        // Use database queue for reliability
         $this->onQueue(config('queue.pipes.chat.whatsapp', 'default'));
     }
 
@@ -53,6 +52,13 @@ class SendWhatsappConversationMessage implements ShouldQueue
      */
     public function handle()
     {
+        // Reconnect to DB to prevent "MySQL server has gone away" error
+        try {
+            \Illuminate\Support\Facades\DB::reconnect();
+        } catch (\Exception $e) {
+            // Ignore reconnection errors
+        }
+
         try {
 
             if(!$this->gateway || !$this->messageStatus) return;
