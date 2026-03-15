@@ -210,11 +210,11 @@ class NodeService
           // Try database first
           $fromDb = site_settings('purchase_key');
           if (!empty($fromDb)) {
-               return $fromDb;
+               return (string) $fromDb;
           }
 
           // Fallback to env
-          return env('PURCHASE_KEY', '');
+          return (string) env('PURCHASE_KEY', '');
      }
 
      /**
@@ -227,11 +227,11 @@ class NodeService
           // Try database first
           $fromDb = site_settings('envato_username');
           if (!empty($fromDb)) {
-               return $fromDb;
+               return (string) $fromDb;
           }
 
           // Fallback to env
-          return env('ENVATO_USERNAME', '');
+          return (string) env('ENVATO_USERNAME', '');
      }
 
      /**
