@@ -153,28 +153,40 @@ class SendWhatsappConversationMessage implements ShouldQueue
             'X-API-Key'    => env('WP_API_KEY', ''),
         ];
 
-        $response = Http::timeout(30)->withoutVerifying()->withHeaders($headers)->post($apiURL, $postInput);
+        // Reduce timeout to 5 seconds to prevent long loading times
+        // The Node service queues messages anyway, so we don't need to wait long
+        try {
+            $response = Http::timeout(5)->withoutVerifying()->withHeaders($headers)->post($apiURL, $postInput);
 
-        if ($response->status() === 200) {
-            $res = json_decode($response->body(), true);
-            if (Arr::get($res, 'success')) {
-                $this->updateMessageStatus(
-                    status: ConversationMessageStatusEnum::SENT,
-                    response: $res,
-                    phoneNumberId: $this->gateway->name
-                );
+            if ($response->status() === 200) {
+                $res = json_decode($response->body(), true);
+                if (Arr::get($res, 'success')) {
+                    $this->updateMessageStatus(
+                        status: ConversationMessageStatusEnum::SENT,
+                        response: $res,
+                        phoneNumberId: $this->gateway->name
+                    );
+                } else {
+                    $this->updateMessageStatus(
+                        status: ConversationMessageStatusEnum::FAILED,
+                        response: $res,
+                        errorMessage: Arr::get($res, 'message', 'Unknown error')
+                    );
+                }
             } else {
                 $this->updateMessageStatus(
                     status: ConversationMessageStatusEnum::FAILED,
-                    response: $res,
-                    errorMessage: Arr::get($res, 'message', 'Unknown error')
+                    response: null,
+                    errorMessage: 'Failed to connect to Node service'
                 );
             }
-        } else {
+        } catch (\Exception $e) {
+            // Log error but don't crash the user interface
+            // If timeout occurs, the message might still be processing in Node
             $this->updateMessageStatus(
                 status: ConversationMessageStatusEnum::FAILED,
                 response: null,
-                errorMessage: 'Failed to connect to Node service'
+                errorMessage: 'Request timed out or failed: ' . $e->getMessage()
             );
         }
     }
