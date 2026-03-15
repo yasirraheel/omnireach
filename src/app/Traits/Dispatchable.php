@@ -15,6 +15,7 @@ use App\Services\System\Communication\DispatchService;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\LazyCollection;
+use Illuminate\Support\Facades\DB;
 
 trait Dispatchable
 {
