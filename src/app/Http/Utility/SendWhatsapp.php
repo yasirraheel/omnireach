@@ -137,9 +137,29 @@ class SendWhatsapp
             }
             return $success;
         } catch (Exception $e) {
+            if ($gateway->type == WhatsAppGatewayTypeEnum::NODE->value && $this->isTimeoutLikeError($e->getMessage())) {
+                Log::warning('WhatsApp send timed out but may be processed by Node service', [
+                    'gateway_id' => $gateway->id,
+                    'error' => $e->getMessage(),
+                ]);
+
+                if ($dispatchLog instanceof DispatchLog || $dispatchLog instanceof Collection) {
+                    $this->markAsDelivered($dispatchLog);
+                }
+
+                return true;
+            }
+
             $this->fail($dispatchLog, $e->getMessage());
             return false;
         }
+    }
+
+    private function isTimeoutLikeError(string $message): bool
+    {
+        return stripos($message, 'cURL error 28') !== false
+            || stripos($message, 'Operation timed out') !== false
+            || stripos($message, 'timed out') !== false;
     }
 
     /**
