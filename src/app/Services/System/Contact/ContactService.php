@@ -1180,6 +1180,45 @@ class ContactService
         }
 
         if (!empty($contactsToCreate)) {
+            $now = now();
+            $contactsToCreate = collect($contactsToCreate)
+                ->map(function ($contact) use ($now) {
+                    $normalized = [
+                        'uid' => Arr::get($contact, 'uid'),
+                        'group_id' => Arr::get($contact, 'group_id'),
+                        'user_id' => Arr::get($contact, 'user_id'),
+                        'status' => Arr::get($contact, 'status', Status::ACTIVE->value),
+                        'first_name' => Arr::get($contact, 'first_name'),
+                        'last_name' => Arr::get($contact, 'last_name'),
+                        'email_contact' => Arr::get($contact, 'email_contact'),
+                        'sms_contact' => Arr::get($contact, 'sms_contact'),
+                        'whatsapp_contact' => Arr::get($contact, 'whatsapp_contact'),
+                        'meta_data' => Arr::get($contact, 'meta_data'),
+                        'created_at' => Arr::get($contact, 'created_at', $now),
+                        'updated_at' => Arr::get($contact, 'updated_at', $now),
+                    ];
+
+                    foreach (['first_name', 'last_name', 'email_contact', 'sms_contact', 'whatsapp_contact'] as $key) {
+                        $value = Arr::get($normalized, $key);
+                        $normalized[$key] = is_string($value) ? trim($value) : $value;
+                    }
+
+                    return $normalized;
+                })
+                ->filter(function ($contact) {
+                    $email = strtolower((string) Arr::get($contact, 'email_contact', ''));
+                    $sms = strtolower((string) Arr::get($contact, 'sms_contact', ''));
+                    $whatsapp = strtolower((string) Arr::get($contact, 'whatsapp_contact', ''));
+
+                    $headerLike = in_array($email, ['email', 'email_contact'], true)
+                        || in_array($sms, ['sms', 'sms_contact', 'phone', 'phone_number'], true)
+                        || in_array($whatsapp, ['whatsapp', 'whatsapp_contact'], true);
+
+                    return !$headerLike;
+                })
+                ->values()
+                ->toArray();
+
             Contact::insert($contactsToCreate);
             $contactImport->increment('processed_contacts', count($contactsToCreate));
         }
