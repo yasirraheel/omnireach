@@ -11,7 +11,7 @@ return [
     | Example: SUPPORT_URL=https://your-company-support.com
     |
     */
-    "support_url" => env('SUPPORT_URL', 'https://support.igensolutionsltd.com/'),
+    "support_url" => env('SUPPORT_URL', ''),
 
     "google" => [
         'g_client_id'     => "####",

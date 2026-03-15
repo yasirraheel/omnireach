@@ -394,9 +394,11 @@
                         <a href="{{route('home')}}" class="btn btn-primary">
                             <i class="bi bi-house-door"></i> Return to Home
                         </a>
-                        <a href="{{ \App\Enums\SettingKey::SUPPORT_URL->value }}" target="_blank" class="btn btn-secondary">
+                        @if(config('setting.support_url'))
+                        <a href="{{ config('setting.support_url') }}" target="_blank" class="btn btn-secondary">
                             <i class="bi bi-headset"></i> Contact Support
                         </a>
+                        @endif
                         <button type="button" class="btn btn-verify" data-bs-toggle="modal" data-bs-target="#verifyLicenseModal">
                             <i class="bi bi-check-circle"></i> Verify License
                         </button>
