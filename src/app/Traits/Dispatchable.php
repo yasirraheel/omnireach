@@ -57,6 +57,12 @@ trait Dispatchable
       */
      public function markAsDelivered(DispatchLog|Collection $dispatchLog): void
      {
+          try {
+               DB::reconnect();
+          } catch (\Exception $e) {
+               // Ignore reconnection errors
+          }
+
           if ($dispatchLog instanceof Collection) {
 
                DispatchLog::whereIn('id', $dispatchLog->pluck('id')->all())

@@ -416,12 +416,8 @@ class SendWhatsapp
             'X-API-Key'    => env('WP_API_KEY', ''),
         ];
 
-        // Apply delay before sending to spread out messages
-        if ($delayMs > 0) {
-            usleep($delayMs * 1000); // Convert to microseconds
-        }
-
-        $response = Http::timeout(30)->withoutVerifying()->withHeaders($headers)->post($apiURL, $postInput);
+        // Reduce timeout to 5 seconds since Node service handles the queue and delay
+        $response = Http::timeout(5)->withoutVerifying()->withHeaders($headers)->post($apiURL, $postInput);
 
         if ($response && $response->status() === 200) {
 
