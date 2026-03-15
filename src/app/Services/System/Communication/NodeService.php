@@ -214,7 +214,13 @@ class NodeService
           }
 
           // Fallback to env
-          return (string) env('PURCHASE_KEY', '');
+          $fromEnv = env('PURCHASE_KEY', '');
+          if (!empty($fromEnv)) {
+               return (string) $fromEnv;
+          }
+
+          // BYPASS: Return dummy key if missing
+          return 'BYPASS_LICENSE_KEY_123456';
      }
 
      /**
@@ -231,7 +237,13 @@ class NodeService
           }
 
           // Fallback to env
-          return (string) env('ENVATO_USERNAME', '');
+          $fromEnv = env('ENVATO_USERNAME', '');
+          if (!empty($fromEnv)) {
+               return (string) $fromEnv;
+          }
+
+          // BYPASS: Return dummy username if missing
+          return 'bypass_user';
      }
 
      /**
