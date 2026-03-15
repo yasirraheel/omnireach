@@ -211,96 +211,69 @@ class CommunicationManager
      */
     public function updateDispatchLogStatuses(AndroidSession $androidSession, array $logs): int
     {
+        $logIds = array_column($logs, 'id');
+        $statusMap = array_column($logs, 'status', 'id');
+        $errorMap = array_column($logs, 'response_message', 'id');
+        $retryMap = array_column($logs, 'retry', 'id');
+
         $totalUpdated = 0;
-        $logsCollection = LazyCollection::make($logs);
 
-        DB::transaction(function () use ($logsCollection, $androidSession, &$totalUpdated) {
+        DB::transaction(function () use ($androidSession, $logIds, $statusMap, $errorMap, $retryMap, &$totalUpdated) {
+            
+            // Reconnect if connection lost
+            try {
+                DB::reconnect();
+            } catch (\Exception $e) {
+                // Ignore reconnection errors
+            }
 
-            $logsCollection->chunk(1000)
-                                ->each(function ($chunk) use ($androidSession, &$totalUpdated) {
-
-                                    $ids                        = [];
-                                    $failedLogs                 = [];
-                                    $statusCases                = [];
-                                    $statusBindings             = [];
-                                    $responseMessageCases       = [];
-                                    $responseMessageBindings    = [];
-
-                                    foreach ($chunk as $log) {
-
-                                        $id             = Arr::get($log, "id");
-                                        $status          = Arr::get($log, "status");
-                                        $responseMessage = Arr::get($log, "response_message");
-                                        
-                                        $statusCases[] = "WHEN {$id} THEN ?";
-                                        $statusBindings[] = $status;
-                                        
-                                        if ($status == CommunicationStatusEnum::FAIL->value) {
-                                            $responseMessageCases[]     = "WHEN {$id} THEN ?";
-                                            $responseMessageBindings[]  = $responseMessage;
-                                            $failedLogs[$id]            = $responseMessage;
-                                        } else {
-                                            $responseMessageCases[] = "WHEN {$id} THEN NULL";
-                                        }
-
-                                        $ids[] = $id;
-                                    }
-
-                                    $statusCasesSql             = implode(' ', $statusCases);
-                                    $responseMessageCasesSql    = implode(' ', $responseMessageCases);
-                                    $idsSql                     = implode(',', $ids);
+            DispatchLog::whereIn('id', $logIds)
+                                ->where('gatewayable_type', AndroidSim::class)
+                                ->where(function ($query) use ($androidSession) {
+                                    $query->when("gatewayable_type" instanceof AndroidSim, fn(Builder $q): Builder =>
+                                    $q->orWhereHas('gatewayable', function ($subQuery) use ($androidSession) {
+                                        $subQuery->where('android_session_id', $androidSession->id);
+                                    }));
+                                })
+                                ->chunkById(100, function ($dispatchLogs) use ($statusMap, $errorMap, $retryMap, &$totalUpdated) {
                                     
-                                    if (!empty($statusCases)) {
-                                        $now = Carbon::now();
-                                        $bindings = array_merge(
-                                            $statusBindings,
-                                            $responseMessageBindings,
-                                            [
-                                                $now,                           
-                                                $now,
-                                                AndroidSim::class,
-                                                $androidSession->id,
-                                                CommunicationStatusEnum::PROCESSING->value
-                                            ]
-                                        );
+                                    foreach ($dispatchLogs as $dispatchLog) {
+                                        
+                                        $status = $statusMap[$dispatchLog->id] ?? null;
+                                        $error  = $errorMap[$dispatchLog->id] ?? null;
+                                        $retry  = $retryMap[$dispatchLog->id] ?? false;
 
-                                        $affectedRows = DB::update(
-                                            "UPDATE dispatch_logs 
-                                             SET 
-                                                 status = CASE id {$statusCasesSql} END,
-                                                 response_message = CASE id {$responseMessageCasesSql} END,
-                                                 updated_at = ?,
-                                                 processed_at = ?
-                                             WHERE id IN ({$idsSql})
-                                             AND gatewayable_type = ?
-                                             AND EXISTS (
-                                                 SELECT 1 
-                                                 FROM android_sims 
-                                                 WHERE android_sims.id = dispatch_logs.gatewayable_id 
-                                                 AND android_sims.android_session_id = ?
-                                             )
-                                             AND status = ?",
-                                            $bindings
-                                        );
-                                        $totalUpdated += $affectedRows;
+                                        if ($status) {
+                                            $updateData = [
+                                                'status' => $status,
+                                                'processed_at' => Carbon::now(),
+                                            ];
 
-                                        if (!empty($failedLogs)) {
-                                            // Fetch dispatch logs with user_id for failed logs
-                                            $failedDispatchLogs = DispatchLog::whereIn('id', array_keys($failedLogs))
-                                                ->whereNotNull('user_id')
-                                                ->with('user') // Eager load user relationship
-                                                ->get();
-                    
-                                            foreach ($failedDispatchLogs as $dispatchLog) {
-                                                $user = $dispatchLog->user;
-                                                if ($user && $user->sms_credit > -1) {
-                                                    CustomerService::addedCreditLog(
-                                                        user: $user,
-                                                        totalCredit: 1, 
-                                                        serviceType: ServiceType::SMS->value,
-                                                        manual: false,
-                                                        message: translate("Refunded 1 SMS credit for failed dispatch log ID {$dispatchLog->id}")
-                                                    );
+                                            if ($error) {
+                                                $updateData['response_message'] = $error;
+                                            }
+
+                                            if($retry) {
+                                                $updateData['retry_count'] = $dispatchLog->retry_count + 1;
+                                            }
+
+                                            $updated = DispatchLog::where('id', $dispatchLog->id)->update($updateData);
+
+                                            if ($updated) {
+                                                $totalUpdated++;
+
+                                                if ($status === CommunicationStatusEnum::FAIL->value) {
+                                                    
+                                                    if($dispatchLog->user_id) {
+                                                        
+                                                        $customerService = new CustomerService();
+                                                        $customerService->deductCredit(
+                                                            user: $dispatchLog->user,
+                                                            serviceType: ServiceType::SMS->value,
+                                                            manual: false,
+                                                            message: translate("Refunded 1 SMS credit for failed dispatch log ID {$dispatchLog->id}")
+                                                        );
+                                                    }
                                                 }
                                             }
                                         }
