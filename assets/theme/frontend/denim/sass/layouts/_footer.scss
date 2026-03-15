@@ -1,0 +1,166 @@
+@use "../abstracts/"as *;
+
+.footer {
+  .footer-content {
+    @at-root {
+      .footer-top {
+        padding-block-end: 40px;
+        border-spacing: 10px;
+        .footer-card{
+          background-color: $card-bg;
+          border: 1px solid $border-ternary;
+          padding: 40px;
+          border-radius: $radius-24;
+          @include xxl-down{
+            padding: 25px;
+          }
+          @include sm-down{
+            padding: 15px;
+            order-radius: $radius-8;
+          }
+          .footer-card-header{
+            @include flex($align:flex-start,$gap:50px, $justify:space-between);
+            @include md-down {
+              gap: 20px;
+            }
+            >h5 {
+              font-size: 24px;
+              @include xxl-down {
+                font-size: 20px;
+              }
+              @include lg-down {
+                font-size: 18px;
+              }
+            }
+          }
+          .email-input{
+            height: 50px;
+            border-radius: $radius-12;
+            border: 1px solid $border-ternary;
+            background-color: $site-bg;
+            padding: 5px 15px;
+          }
+        }
+      }
+
+      .footer-bottom {
+         color: $text-secondary;
+         background-color: $footer-bg;
+         padding-block-start: 80px;
+          @include md-down {
+          padding-block-start: 50px;
+        }
+        .logo-wrapper {
+          max-width: 150px;
+          width: 100%;
+          display: inline-block;
+          margin-bottom: 20px;
+
+          >img {
+            width: 100%;
+          }
+        }
+
+        .footer-social {
+          margin-block-start: 20px;
+          @include flex($align: center, $gap: 30px);
+
+          >li>a {
+            font-size: 18px;
+            color: $text-secondary;
+            line-height: 1;
+
+            &:hover {
+              color: $color-primary;
+            }
+          }
+        }
+        .payment-logos {
+          max-width: 350px;
+        }
+
+        .footer-nav {
+          >h6 {
+            font-size: 16px;
+            color: $color-primary;
+          }
+
+          >ul {
+            margin-block-start: 15px;
+            @include flex($direction: column, $gap: 10px);
+            >li {
+              >a {
+                color: $text-secondary;
+                font-size: 16px;
+
+                &:hover {
+                  color: $text-primary;
+                  text-decoration: underline;
+                }
+              }
+            }
+          }
+
+          .contact-info {
+            margin-block-start:15px;
+            @include flex($direction: column, $gap: 15px);
+
+            >a {
+              @include flex($align: center, $gap: 10px);
+              line-height: 1.2;
+              color: $text-secondary;
+              font-size: 16px;
+
+              >i {
+                font-size: 20px;
+                color: $color-primary;
+              }
+
+              &:hover {
+                color: $text-primary;
+                text-decoration: underline;
+              }
+            }
+
+            >span {
+              @include flex($align: start, $gap: 10px);
+              color: $text-secondary;
+              font-size: 16px;
+              >i {
+                font-size: 20px;
+                color: $text-primary;
+              }
+            }
+          }
+        }
+        .copy-right {
+          font-size: 12px;
+          padding-block: 20px;
+          border-top: 1px solid $border-ternary;
+          @include flex($align:center, $justify:space-between, $gap:25px,$wrap: wrap);
+          margin-block-start: 100px;
+          @include xxl-down {
+            margin-block-start: 80px;
+          }
+           @include md-down {
+            margin-block-start: 50px;
+          }
+  
+          ul {
+            @include flex($align:center, $gap:20px);
+            li {
+              a {
+                color: $text-secondary;
+                &:hover{
+                  color: $text-primary;
+                  text-decoration: underline;
+                }
+              }
+            }
+          }
+        }
+      }
+
+    }
+  }
+}

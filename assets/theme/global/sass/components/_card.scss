@@ -1,0 +1,47 @@
+@use "../abstracts/" as *;
+
+.card {
+  border: none;
+  border-radius: $radius-12;
+  background-color: $card-bg;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+
+  margin-bottom: 0;
+  [data-bs-theme="dark"] & {
+    border: none;
+  }
+  &-header {
+    @include flex(
+      $align: center,
+      $justify: space-between,
+      $wrap: wrap,
+      $gap: 10px 20px
+    );
+    padding: 15px 20px;
+    border-bottom: none;
+    line-height: 1;
+    background-color: transparent;
+    @include md-down {
+      padding: 15px;
+    }
+    @at-root {
+      .card-title {
+        font-size: 18px !important;
+        font-weight: 600;
+        -webkit-margin-after: 0;
+        margin-block-end: 0;
+      }
+    }
+  }
+  .form-header {
+    padding: 15px 20px;
+    -webkit-border-after: 1px solid $color-border;
+    border-block-end: 1px solid $color-border;
+  }
+  &-body {
+    padding: 20px;
+    @include md-down {
+      padding: 15px;
+    }
+  }
+}

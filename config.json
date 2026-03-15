@@ -1,0 +1,41 @@
+{
+    "version": "4.2",
+    "migrations": {
+        "4.1": [],
+        "4.2": [
+            "database/migrations/2025_01_11_000001_create_lead_generation_tables.php",
+            "database/migrations/2025_04_30_070800_create_personal_access_tokens_table.php",
+            "database/migrations/2025_04_30_071258_add_api_gateway_preferences_to_users_table.php",
+            "database/migrations/2026_01_11_000001_add_lead_generation_to_pricing_plans_table.php",
+            "database/migrations/2026_01_11_000002_add_api_docs_url_to_lead_generation_settings_table.php",
+            "database/migrations/2026_01_12_000001_create_automation_workflow_tables.php",
+            "database/migrations/2026_01_12_000002_create_workflow_templates_table.php",
+            "database/migrations/2026_01_14_000001_add_automation_to_pricing_plans_table.php",
+            "database/migrations/2026_01_15_172305_create_plan_display_features_tables.php",
+            "database/migrations/2026_01_17_224557_create_meta_configurations_table.php",
+            "database/migrations/2026_01_17_224601_create_whatsapp_client_onboardings_table.php",
+            "database/migrations/2026_01_17_224604_add_meta_enterprise_fields_to_gateways_table.php",
+            "database/migrations/2026_01_18_014630_migrate_legacy_meta_settings_to_meta_configuration.php",
+            "database/migrations/2026_01_20_000001_create_unified_campaigns_table.php",
+            "database/migrations/2026_01_20_000002_create_campaign_messages_table.php",
+            "database/migrations/2026_01_20_000003_create_campaign_dispatches_table.php",
+            "database/migrations/2026_01_20_000010_create_campaign_ab_tests_table.php",
+            "database/migrations/2026_01_20_000011_create_contact_engagements_table.php",
+            "database/migrations/2026_01_20_000012_create_campaign_insights_table.php",
+            "database/migrations/2026_01_20_161419_add_ai_intelligence_to_pricing_plans_table.php",
+            "database/migrations/2026_02_07_000001_upgrade_meta_api_version_to_v24.php",
+            "database/migrations/2026_02_12_000001_create_sending_domains_table.php",
+            "database/migrations/2026_02_12_000002_create_email_tracking_events_table.php",
+            "database/migrations/2026_02_12_000003_create_bounce_logs_table.php",
+            "database/migrations/2026_02_12_000004_create_email_suppressions_table.php",
+            "database/migrations/2026_02_12_000005_create_tracking_domains_table.php",
+            "database/migrations/2026_02_12_000006_add_email_deliverability_plan_display_features.php",
+            "database/migrations/2026_02_12_000007_add_domain_limits_to_existing_plans.php"
+        ]
+    },
+    "seeder": {
+        "4.2": [
+            "SettingsSeeder"
+        ]
+    }
+}

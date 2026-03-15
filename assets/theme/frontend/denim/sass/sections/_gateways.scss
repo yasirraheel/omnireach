@@ -1,0 +1,123 @@
+@use "../abstracts/"as *;
+
+.gateways {
+  .gateway-wrapper {
+    background: $card-bg;
+    border-radius: $radius-24;
+    overflow: hidden;
+
+    @at-root {
+      .gateway-title {
+        font-size: 32px;
+        font-weight: 600;
+        color: $text-primary;
+        margin-bottom: 30px;
+
+        @include lg-down {
+          font-size: 26px;
+        }
+
+        @include sm-down {
+          font-size: 22px;
+        }
+      }
+
+      // .gateway-slider {
+      //   .gateway-img {
+      //     width: 100%;
+      //     aspect-ratio: 16/12;
+      //     background: $color-white;
+      //     @include flex($align: center, $justify: center);
+      //     border-radius: $radius-20;
+      //     padding: 20px;
+      //     > img {
+      //       max-width: 120px;
+      //       @include md-down {
+      //         max-width: 100px;
+      //         width: 100%;
+      //       }
+      //     }
+      //   }
+      // }
+      .gateway-bottom {
+        max-width: 600px;
+
+        >p {
+          font-size: 18px;
+          color: $text-secondary;
+        }
+      }
+
+      .marquee {
+        position: relative;
+        z-index: 3;
+        overflow: hidden;
+        padding: 80px 0;
+        background-color: $color-primary;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 20px;
+        @include xxl-down{
+          padding: 60px 0;
+        }
+        @include xl-down{
+          padding: 40px 0;
+          gap: 15px;
+        }
+
+        .marquee-carousel.marquee-carousel-1 {
+          margin-inline-end: -400px;
+        }
+
+        .marquee-carousel.marquee-carousel-2 {
+          margin-inline-start: -300px;
+        }
+
+        .marquee-carousel.marquee-carousel-3 {
+          margin-inline-end: -400px;
+        }
+        .marquee-carousel.marquee-carousel-4 {
+          margin-inline-start: -300px;
+        }
+
+        .marquee-items {
+          -webkit-transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1) !important;
+          -moz-transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1) !important;
+          -o-transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1) !important;
+          display: -webkit-box;
+          position: relative;
+          width: 100%;
+          height: 72px;
+          transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1) !important;
+          @include xxl-down{
+              height: 60px;
+          }
+
+          .marquee-item {
+            -webkit-flex-shrink: 0;
+            -ms-flex-negative: 0;
+            flex-shrink: 0;
+            overflow: hidden;
+            width: 170px;
+            height: 100%;
+            margin-right: 15px;
+            background: #F7F8F9;
+            border-radius: $radius-pill;
+            @include item-center;
+            padding-inline: 25px;
+            @include xxl-down{
+               width: 150px;
+               padding-inline: 20px;
+            }
+            .marquee-item img {
+              width: 100%;
+              height: auto;
+            }
+          }
+        }
+
+      }
+
+    }
+  }
+}

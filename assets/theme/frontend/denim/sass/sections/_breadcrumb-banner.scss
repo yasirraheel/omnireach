@@ -1,0 +1,90 @@
+@use "../abstracts/"as *;
+
+.breadcrumb-banner {
+  background-color: $card-bg;
+  .banner-wrapper {
+    margin-top: 90px;
+    height: 100%;
+    max-width: 100%;
+    padding-inline: 60px;
+    @include xxl-down {
+      padding-inline: 40px;
+    }
+
+    @include lg-down {
+      padding-inline: 0;
+    }
+
+    @at-root {
+      .breadcrumb-content {
+        @at-root {
+          .breadcrumb-title {
+            font-size: 60px;
+            max-width: 900px;
+            width: 100%;
+            @include xxl-down {
+              font-size: 48px;
+              max-width: 600px;
+            }
+
+            @include lg {
+              font-size: 42px;
+            }
+
+            @include lg-down {
+              font-size: 38px;
+            }
+
+            @include sm-down {
+              font-size: 32px;
+            }
+          }
+
+          .breadcrumb-bottom {
+            @include flex($align: end, $justify: space-between, $gap: 20px, $wrap: wrap);
+
+            @at-root {
+              .breadcrumb-actions {
+                .breadcrumb {
+                  .breadcrumb-item {
+                    font-size: 20px;
+
+                    a {
+                      color: $text-secondary;
+                      text-decoration: underline;
+                      transition: 0.3s ease-in-out;
+
+                      &:hover {
+                        color: $color-primary;
+                      }
+                    }
+
+                    &.active {
+                      color: $text-primary;
+                    }
+
+                    &::before {
+                      color: $text-secondary;
+                    }
+                  }
+                }
+              }
+
+              .breadcrumb-description {
+                max-width: 450px;
+                width: 100%;
+                font-size: 16px;
+                @include lg{
+                  max-width: 600;
+                }
+                @include lg-down{
+                  max-width: 100%;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

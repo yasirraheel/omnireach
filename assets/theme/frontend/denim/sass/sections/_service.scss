@@ -1,0 +1,77 @@
+@use "../abstracts/" as *;
+
+.service {
+  .service-list {
+    @at-root {
+      .service-item {
+        border: 1px solid $border-ternary;
+        padding: 35px;
+        background-color: $card-bg;
+        border-radius: $radius-20;
+        transition: 0.3s ease-in-out;
+        display: block;
+        @include xxl-down {
+          padding: 25px ;
+        }
+        &:hover{
+          background-color: $color-primary;
+          color: $text-light;
+          .service-title{
+            > span {
+              background-color: $card-bg;
+              color: $text-primary;
+            }
+            > h4 {
+              color: $text-light;
+            }
+            > p{
+               color: $text-light;
+            }
+          }
+          .service-description {
+            color: $text-light;
+          }
+        }
+        @at-root {
+          .service-title {
+            > span {
+              display: inline-flex;
+              @include square(40px, $radius-rounded);
+              @include flex($align: center, $justify: center);
+              background-color: $color-primary;
+              color: $color-primary-text;
+              line-height: 1;
+              font-size: 20px;
+              font-weight: 500;
+              flex-shrink: 0;
+              margin-bottom: 20px;
+            }
+
+            > h4 {
+              font-size: 24px;
+              @include lg-down{
+                font-size: 20px;
+              }
+              @include sm-down{
+                font-size: 18px;
+              }
+            }
+            >p{
+              color: $text-primary;
+              margin-top: 5px;
+            }
+          }
+          .service-description {
+            font-size: 16px;
+            color: $text-primary;
+            margin-top: 30px;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+          }
+        }
+      }
+    }
+  }
+}

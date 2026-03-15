@@ -1,0 +1,103 @@
+@use "../abstracts/" as *;
+
+.feature {
+  .feature-tab {
+    .nav {
+      --tab-gap: 32px;
+      $tab-gap: var(--tab-gap);
+      gap: $tab-gap;
+      flex-direction: column;
+      @include xxl-down {
+        flex-direction: row;
+      }
+
+      @include md-down {
+        flex-direction: column;
+      }
+
+      .nav-link {
+        padding: 32px 40px;
+        font-size: 32px;
+        font-weight: 500;
+        border: 1px solid $border-secondary;
+        color: $text-primary;
+        border-radius: $radius-pill;
+        @include flex($align: center, $justify: space-between);
+        line-height: 1.2;
+        @include xxl-down {
+          flex: 1 0 calc(50% - $tab-gap);
+          padding: 25px 30px;
+          font-size: 24px;
+        }
+        @include md-down {
+          flex: 1 0 100%;
+          padding: 20px 25px;
+          font-size: 20px;
+        }
+
+        &:is(.active) {
+          background: $color-gradient;
+          color: $color-primary-text;
+          border: none;
+          > span {
+            rotate: 45deg;
+          }
+        }
+        &:is(:hover) {
+          background: $color-gradient;
+          color: $color-primary-text;
+          border-color: transparent;
+          > span {
+            rotate: 45deg;
+          }
+        }
+        > span {
+          font-size: 24px;
+          transition: rotate 0.3s ease-in-out;
+        }
+      }
+    }
+  }
+
+  .feature-tab-img {
+    border-radius: $radius-32;
+    overflow: hidden;
+    @include md-down{
+      border-radius: $radius-20;
+    }
+  }
+  .feature-card {
+    padding: 32px;
+    color: $text-light;
+    @include flex(
+      $align: flex-start,
+      $justify: space-between,
+      $direction: column
+    );
+    background-color: $card-bg;
+    border-radius: $radius-32;
+    min-height: 320px;
+    > p {
+      font-size: 22px;
+    }
+    > a {
+      color: $text-light;
+      font-size: 24px;
+      font-weight: 600;
+      line-height: 1.1;
+      @include flex($align: center, $justify: space-between, $gap: 20px);
+      &:hover {
+        span {
+          rotate: 45deg;
+        }
+      }
+      > span {
+        flex-shrink: 0;
+        @include square(64px, $radius-rounded);
+        @include flex($align: center, $justify: center);
+        background: #ffffff23;
+        transition: rotate 0.3s ease-in-out;
+      }
+    }
+  }
+}

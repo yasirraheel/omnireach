@@ -1,0 +1,78 @@
+@use "../abstracts/" as *;
+
+.testimonial {
+  background: $card-bg;
+  background: linear-gradient(0deg,rgba(255, 255, 255, 0) 0%, $card-bg 100%);
+  padding-block-start: 70px;
+  .testimonial-wrapper{
+    position: relative;
+    &:before {
+      content: "";
+      position: absolute;
+      inset-inline: 0;
+      inset-block-end: 0;
+      width: 100%;
+      height: 50%;
+      background: linear-gradient(0deg,$site-bg 35%, rgba(255, 255, 255, 0) 100%);
+      z-index: 5;
+      opacity: 0.5;
+    }
+    .review-card {
+      position: relative;
+      z-index: 2;
+      overflow: hidden;
+      padding: 25px;
+      background-color: $color-gray-1;
+      border-radius: $radius-16;
+  
+      .review-rating{
+        margin-bottom: 15px;
+        @include flex($gap: 8px, $align: center);
+        line-height: 1.1;
+        .review-star{
+          @include flex($gap: 3px, $align: center);
+          li{
+            font-size: 16px;
+            color: $color-warning;
+          }
+        }
+      }
+  
+      > p {
+        font-size: 16px;
+        line-height: 1.6;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 3;
+      }
+  
+      .reviewer {
+        margin-block-start: 40px;
+        @include flex($align: center, $gap: 20px);
+        .reviewer-img {
+          @include square(48px, $radius-rounded);
+          overflow: hidden;
+          flex-shrink: 0;
+          @include lg-down {
+            @include square(50px, $radius-rounded);
+          }
+          > img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+          }
+        }
+        .reviewer-info {
+          > h6 {
+            font-size: 16px;
+            font-weight: 600;
+          }
+          > span {
+            font-size: 14px;
+          }
+        }
+      }
+    }
+  }
+}

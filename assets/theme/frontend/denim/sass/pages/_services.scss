@@ -1,0 +1,76 @@
+@use "../abstracts/" as *;
+
+.message-service {
+  .service-wrapper {
+    .service-list {
+      @include md-up {
+        &:nth-child(odd) {
+          padding-inline-end: 30px;
+          border-inline-end: 1px solid $border-secondary;
+        }
+
+        &:nth-child(even) {
+          padding-inline-start: 30px;
+        }
+
+        &:nth-child(-n + 2) {
+          padding-block: 30px;
+          border-block-end: 1px solid $border-secondary;
+        }
+
+        &:nth-child(n + 3) {
+          padding-block: 30px;
+        }
+      }
+
+      @include md-down {
+        &:not(:last-child) {
+          border-block-end: 1px solid $border-secondary;
+          padding-block-end: 10px;
+          margin-block-end: 25px;
+        }
+      }
+
+      .service-card {
+        @include flex($align: start, $direction: column, $gap: 30px);
+        .service-icon {
+          @include square(60px, $radius-rounded);
+          @include flex($align: center, $justify: center);
+          background: $color-gradient;
+          color: $color-primary-text;
+          font-size: 30px;
+          line-height: 1;
+          flex-shrink: 0;
+        }
+
+        .service-content {
+          > h4 {
+            font-size: 25px;
+            margin-block-end: 10px;
+          }
+          > p {
+            font-size: 16px;
+            line-height: 32px;
+            color: #667085;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+          }
+        }
+      }
+    }
+
+    .message-service-content {
+      > p {
+        font-size: 20px;
+        @include xxl-down {
+          font-size: 18px;
+        }
+        @include sm-down {
+          font-size: 16px;
+        }
+      }
+    }
+  }
+}

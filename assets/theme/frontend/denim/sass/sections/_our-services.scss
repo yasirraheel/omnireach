@@ -1,0 +1,78 @@
+@use "../abstracts/" as *;
+
+.our-services {
+    .our-service-list {
+        .our-service-item {
+            border-top: 1px solid $border-secondary;
+            padding-block: 80px;
+            display: block;
+
+            &:first-child {
+                border-top: 0;
+                padding-block-start: 0;
+            }
+
+            &:last-child {
+                padding-block-end: 0;
+            }
+
+            &:hover {
+                .our-service-item-count {
+                     color: $color-primary;
+                }
+                .service-content {
+                    .service-title {
+                        >h4 {
+                            color: $color-primary;
+                        }
+                    }
+                }
+            }
+
+            .our-service-item-count {
+                font-size: 40px;
+                color: $text-secondary;
+                line-height: 1;
+                transition: 0.3s ease-in-out;
+            }
+
+            .service-content {
+                @include flex($align: flex-end, $justify: space-between, $gap: 20px);
+                .service-title {
+                    >h4 {
+                        transition: 0.3s ease-in-out;
+                    }
+                }
+
+                .service-content-right {
+                    max-width: 500px;
+                    width: 100%;
+
+                    >p {
+                        font-size: 18px;
+                        color: $text-primary;
+                    }
+
+                    >ul {
+                        @include flex($align: center, $gap: 15px, $wrap: wrap);
+                        margin-top: 30px;
+
+                        li {
+                            @include flex($align: center, $gap: 40px);
+                            border: 1px solid $border-ternary;
+                            border-radius: $radius-pill;
+                            padding: 10px 15px;
+                            color: $text-primary;
+                            background-color: $card-bg;
+
+                            span {
+                                @include square(10px, $radius-rounded);
+                                background-color: $color-dark;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,119 @@
+@use "../abstracts/" as *;
+
+.our-journey {
+  background-color: $card-bg;
+  padding-block: 80px;
+  position: relative;
+  border-top-right-radius: $radius-16;
+  border-bottom-right-radius: $radius-16;
+  overflow: hidden;
+
+  [dir="rtl"] & {
+    border-top-left-radius: $radius-16;
+    border-bottom-left-radius: $radius-16;
+  }
+  @include xxl-down {
+    padding-block: 70px;
+  }
+
+  @include md-down {
+    padding-block: 60px;
+  }
+
+  .journey-content {
+    > p {
+      color: $text-primary;
+      font-size: 18px;
+      @include xl-down {
+        font-size: 16px;
+      }
+      @include sm-down {
+        font-size: 14px;
+      }
+    }
+  }
+
+  .journey-header{
+    @include flex($align: center, $justify:space-between, $gap: 20px);
+    border: 1px solid $border-ternary;
+    padding: 15px 20px;
+    margin-bottom: 30px;
+    border-radius: $radius-pill;
+    max-width: 320px;
+    [dir="rtl"] & {
+        flex-direction: row-reverse;
+    }
+    > span {
+      @include square(15px,$radius-rounded);
+      background-color: $color-primary;
+    }
+    > h6 {
+      font-size: 18px;
+      font-weight: 500;
+      color: $text-primary;
+    }
+  }
+  
+  .journey-counter {
+    margin-top: 100px;
+    @include flex($align: center, $gap: 50px);
+    @include xl-down {
+      gap: 30px;
+      margin-top: 80px;
+    }
+     @include md-down {
+      margin-top: 60px;
+    }
+
+    @include sm-down {
+      flex-direction: column;
+      justify-content: start;
+      align-items: flex-start;
+      gap: 35px;
+    }
+
+    .journey-counter-item {
+      > span {
+        font-size: 40px;
+        font-weight: 600;
+        text-transform: uppercase;
+        line-height: 1;
+        color: $color-primary;
+        @include xl-down {
+          font-size: 36px;
+        }
+        @include sm-down {
+          font-size: 28px;
+        }
+      }
+      > p {
+        font-size: 18px;
+        color: $text-primary;
+        @include xxl-down {
+          font-size: 18px;
+        }
+        @include xl-down {
+          font-size: 16px;
+        }
+        @include sm-down {
+          font-size: 16px;
+        }
+      }
+    }
+  }
+  &::after{
+    content: "";
+    position: absolute;
+    background-color: $color-primary;
+    inset-block-start: 0;
+    inset-inline-end: 0;
+    width: 25px;
+    height: 100%;
+    @include lg-down {
+      width: 15px;
+    }
+    @include sm-down {
+      width: 10px;
+    }
+  }
+}

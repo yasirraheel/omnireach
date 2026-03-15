@@ -1,0 +1,160 @@
+@use "../abstracts/" as *;
+
+.plan {
+  position: relative;
+
+  .plan-tab {
+      display: flex;
+      align-items: center;
+      padding: 5px;
+      background: $card-bg;
+      width: -webkit-fit-content;
+      width: -moz-fit-content;
+      width: fit-content;
+      border-radius: 50px;
+      overflow: hidden;
+      border: 1px solid $border-ternary;
+      & > button {
+        padding: 16px 45px;
+        border-radius: 50px;
+        background: transparent;
+        line-height: 1;
+        color: $text-primary;
+        &:hover {
+          color: $text-primary;
+        }
+        &.active {
+          background: $color-primary;
+          color: $color-primary-text;
+        }
+      }
+  }
+
+  .plan-card-wrapper {
+    @at-root {
+      .plan-card {
+        padding: 30px;
+        position: relative;
+        background-color: $card-bg;
+        border: 1px solid $border-ternary;
+        border-radius: $radius-20;
+        @include xxl-down{
+          padding: 25px;
+        }
+        @include xl-down {
+          padding: 20px;
+        }
+
+        @include lg-down {
+          border-radius: $radius-20;
+        }
+
+        &:is(.recommend) {
+          background-color: $color-primary;
+          color: $text-light;
+
+          .plan-title {
+            color: $text-light;
+          }
+
+          .price {
+            color: $text-light;
+
+            >h5 {
+              color: $text-light;
+            }
+          }
+
+          .plan-features {
+            padding-block: 30px;
+            border-top: 1px solid $border-ternary;
+
+            >h5 {
+              color: $text-light;
+            }
+
+            .pricing-list {
+              li {
+                >i {
+                  color: $text-light;
+                }
+              }
+            }
+          }
+
+          .plan-action{
+            .i-btn.btn--primary {
+                background: $card-bg;
+                color: $text-primary;
+            }
+          }
+
+        }
+
+        .plan-title {
+          font-size: 20px;
+          font-weight: 600;
+          color: $text-primary;
+          line-height: 1.2;
+        }
+
+        .plan-desc {
+          font-size: 14px;
+          margin-top: 20px;
+        }
+
+        .price {
+          margin-block: 30px;
+          @include flex($direction: column, $gap: 5px);
+
+          >h5 {
+            font-size: 48px;
+            font-weight: 600;
+            line-height: 1.1;
+          }
+
+          >p {
+            font-size: 16px;
+          }
+        }
+
+        .plan-features {
+          padding-block: 30px;
+          border-top: 1px solid $border-ternary;
+
+          >h5 {
+            font-size: 18px;
+            color: $color-primary;
+          }
+
+          .pricing-list {
+            padding-block-start: 20px;
+            @include flex($direction: column, $gap: 15px);
+
+            li {
+              font-size: 16px;
+              line-height: 1.2;
+
+              @include md-down {
+                font-size: 16px;
+              }
+
+              >i {
+                font-size: 18px;
+                margin-inline-end: 5px;
+                color: $color-primary;
+              }
+            }
+          }
+        }
+
+        .plan-action {
+          .i-btn.btn--xl {
+            padding: 18px 35px;
+            font-size: 16px;
+          }
+        }
+      }
+    }
+  }
+}

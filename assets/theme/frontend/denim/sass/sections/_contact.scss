@@ -1,0 +1,72 @@
+@use "../abstracts/"as *;
+
+.contact {
+  .contact-wrapper {
+    padding-inline: 60px;
+
+    @include xxl-down {
+      padding-inline: 40px;
+    }
+
+    @include lg-down {
+      padding-inline: 0;
+    }
+
+    .contact-form {
+      @include flex($direction: column, $gap: 30px);
+
+      @include xl-down {
+        gap: 25px;
+      }
+
+      .form-element {
+        width: 100%;
+        >.form-control {
+          border: none;
+          border-bottom: 1px solid $border-secondary;
+          background-color: transparent;
+          border-radius: 0;
+          width: 100%;
+          font-size: 18px;
+          padding: 15px 0;
+          resize: none;
+          &:not(textarea) {
+            height: 60px;
+          }
+
+          &:focus {
+            border-color: $color-primary;
+            box-shadow: none;
+          }
+
+          @include xl-down {
+            padding: 15px;
+            font-size: 16px;
+            border-radius: $radius-12;
+          }
+        }
+      }
+
+    }
+
+    .contact-list {
+      margin-block-end: 50px;
+      @include flex($align: start, $direction: column, $gap: 40px);
+
+      @include xl-down {
+        gap: 30px;
+      }
+
+      >li {
+        font-size: 24px;
+        @include flex($align: flex-start, $direction:column, $gap: 10px);
+        color: $text-primary;
+        > span {
+          font-weight: 600;
+          font-size: 18px;
+          color: $text-ternary;
+        }
+      }
+    }
+  }
+}
