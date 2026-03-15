@@ -416,20 +416,30 @@ class SendWhatsapp
             'X-API-Key'    => env('WP_API_KEY', ''),
         ];
 
-        // Reduce timeout to 5 seconds since Node service handles the queue and delay
-        $response = Http::timeout(5)->withoutVerifying()->withHeaders($headers)->post($apiURL, $postInput);
+        // Increased timeout to 10s to allow Node service enough time to acknowledge
+        // If it times out, we'll assume it's processing in background
+        try {
+            $response = Http::timeout(10)->withoutVerifying()->withHeaders($headers)->post($apiURL, $postInput);
 
-        if ($response && $response->status() === 200) {
+            if ($response && $response->status() === 200) {
 
-            $res = json_decode($response->getBody(), true);
-            if (!Arr::has($res, "success") || $res['success'] !== true) {
-                $errorMessage = Arr::get($res, 'message', 'Unknown error');
-                throw new Exception("Node service error: " . $errorMessage);
+                $res = json_decode($response->getBody(), true);
+                if (!Arr::has($res, "success") || $res['success'] !== true) {
+                    $errorMessage = Arr::get($res, 'message', 'Unknown error');
+                    throw new Exception("Node service error: " . $errorMessage);
+                }
+            } else {
+                $errorBody = json_decode($response->body(), true);
+                $errorMessage = Arr::get($errorBody, 'message', 'Failed To Connect Gateway');
+                throw new Exception($errorMessage);
             }
-        } else {
-            $errorBody = json_decode($response->body(), true);
-            $errorMessage = Arr::get($errorBody, 'message', 'Failed To Connect Gateway');
-            throw new Exception($errorMessage);
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            // Handle timeout gracefully - assume message is queued/processing if we can't confirm
+            Log::warning("WhatsApp Node request timed out: " . $e->getMessage());
+            // Return true to avoid showing error to user, since message might still be sent
+            return true;
+        } catch (\Exception $e) {
+            throw $e;
         }
         return true;
     }
