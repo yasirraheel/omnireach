@@ -343,7 +343,7 @@ class DispatchService
                                                                  })->all();
 
                               // Determine if this is a single message (1 contact, not scheduled, not campaign)
-                              $isSingleMessage = $totalLogCount === 1 && !$isCampaign && !$scheduleAt && $type !== ChannelTypeEnum::WHATSAPP;
+                              $isSingleMessage = $totalLogCount === 1 && !$isCampaign && !$scheduleAt && $type === ChannelTypeEnum::SMS;
                               $dispatchResult = null;
 
                               if ($totalLogCount <= 1000 && !$isCampaign && !$scheduleAt) {
@@ -529,7 +529,7 @@ class DispatchService
           $isSingleMessage = $totalLogs === 1
                && ($apiLogCount === null || $apiLogCount <= 1)
                && $forceSync
-               && $channel !== ChannelTypeEnum::WHATSAPP;
+               && $channel === ChannelTypeEnum::SMS;
 
           if ($isSingleMessage) {
                return $this->dispatchSingleMessageSync($gatewayLogs, $channel, $pipe);
