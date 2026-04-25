@@ -19,7 +19,11 @@ class EmailDispatchRequest extends FormRequest
     public function rules(): array
     {
         $rules = [
-            'contacts' => ['required', function ($attribute, $value, $fail) {
+            'contacts' => [Rule::requiredIf(!$this->filled('selected_contact_ids')), function ($attribute, $value, $fail) {
+                if ($value === null && $this->filled('selected_contact_ids')) {
+                    return;
+                }
+
                 if (is_string($value)) {
                     if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
                         $fail('The contact must be a valid email address.');
@@ -40,6 +44,8 @@ class EmailDispatchRequest extends FormRequest
                     $fail('The contacts field must be an email address, group selection, or CSV file.');
                 }
             }],
+            'selected_contact_ids'      => ['nullable', 'array'],
+            'selected_contact_ids.*'    => ['integer'],
             'message.subject'       => ['required', 'string'],
             'message.main_body'     => ['required', 'string'],
             'type'                  => ['required', Rule::in([ChannelTypeEnum::EMAIL->value])],

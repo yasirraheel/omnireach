@@ -10,8 +10,8 @@
     $lastEmailFromName = old('email_from_name', data_get($emailPreferences, 'email_from_name'));
     $lastReplyToAddress = old('reply_to_address', data_get($emailPreferences, 'reply_to_address'));
     $oldSingleContacts = old('active_tab') == 'singleAudience' ? old('contacts') : null;
-    $oldSelectedEmailContacts = is_array($oldSingleContacts)
-        ? array_filter($oldSingleContacts, fn($contact) => filter_var($contact, FILTER_VALIDATE_EMAIL))
+    $oldSelectedEmailContacts = old('active_tab') == 'singleAudience'
+        ? array_filter((array) old('selected_contact_ids', []), fn($contactId) => is_numeric($contactId))
         : [];
     $singleAudienceManualEmail = is_string($oldSingleContacts) ? $oldSingleContacts : '';
 @endphp
@@ -83,7 +83,7 @@
                             </div>
                             <div class="form-inner mb-3 {{ count($oldSelectedEmailContacts) ? '' : 'd-none' }}" id="single_email_contacts_wrapper">
                                 <label for="single_email_contacts" class="form-label">{{ translate("Recipient Emails") }}<sup>*</sup></label>
-                                <select class="form-select select2-search" id="single_email_contacts" name="contacts[]" data-placeholder="{{ translate("Choose recipient emails") }}" aria-label="single_email_contacts" multiple {{ count($oldSelectedEmailContacts) ? '' : 'disabled' }}>
+                                <select class="form-select select2-search" id="single_email_contacts" name="selected_contact_ids[]" data-placeholder="{{ translate("Choose recipient emails") }}" aria-label="single_email_contacts" multiple {{ count($oldSelectedEmailContacts) ? '' : 'disabled' }}>
                                     @foreach($oldSelectedEmailContacts as $oldContact)
                                         <option value="{{ $oldContact }}" selected>{{ $oldContact }}</option>
                                     @endforeach
@@ -641,7 +641,7 @@
                   if (response.status == true && response.contacts.length > 0) {
                       response.contacts.forEach(function(contact) {
                           var groupLabel = contact.group ? ` (${contact.group})` : '';
-                          $singleEmailContacts.append(new Option(`${contact.label}${groupLabel}`, contact.email));
+                          $singleEmailContacts.append(new Option(`${contact.label}${groupLabel}`, contact.id));
                       });
                       $singleEmailContacts.prop('disabled', false);
                       $singleEmailContactsWrapper.removeClass('d-none');

@@ -258,6 +258,7 @@ class DispatchService
           $metaData      = [];
           $messageData   = $request->input('message');
           $contactsInput = $request->input('contacts');
+          $selectedContactIds = $request->input('selected_contact_ids', []);
           $scheduleAt    = $request->input('schedule_at');
      
           if ($type == ChannelTypeEnum::EMAIL) {
@@ -266,16 +267,29 @@ class DispatchService
           }
      
           $dispatchLogs = [];
-          $insertedLogs = DB::transaction(function () use ($contactsInput, $messageData, $scheduleAt, $type, $user, $request, $isCampaign, $campaignId, &$dispatchLogs, $metaData, $apiLogCount) {
+          $insertedLogs = DB::transaction(function () use ($contactsInput, $selectedContactIds, $messageData, $scheduleAt, $type, $user, $request, $isCampaign, $campaignId, &$dispatchLogs, $metaData, $apiLogCount) {
                               $campaign = null;
-                              $groups   = $this->contactService->handleContacts(type: $type, contactsInput: $contactsInput, user: $user);
+                              $contacts = collect();
+                              $groups   = collect();
+
+                              if ($type === ChannelTypeEnum::EMAIL && !empty($selectedContactIds)) {
+                                   $contacts = $this->getSelectedEmailContacts($selectedContactIds, $user);
+                                   if ($contacts->isEmpty()) {
+                                        throw new ApplicationException(translate("No valid email contacts were selected"), Response::HTTP_NOT_FOUND);
+                                   }
+                              } else {
+                                   $groups = $this->contactService->handleContacts(type: $type, contactsInput: $contactsInput, user: $user);
+                              }
+
                               $message  = $this->createMessage(request: $request, messageData: $messageData, type: $type, isCampaign: $isCampaign, user: $user);
      
                               if ($isCampaign) {
                                    $campaign = $this->createCampaign(request: $request, type: $type, message: $message, campaignId: $campaignId, user: $user);
                               }
 
-                              $dispatchLogs = $this->prepareDispatchLogs(request: $request, groups: $groups, message: $message, type: $type, scheduleAt: $scheduleAt, campaign: $campaign, metaData: $metaData, user: $user);
+                              $dispatchLogs = $contacts->isNotEmpty()
+                                   ? $this->prepareDispatchLogsFromContacts(contacts: $contacts, message: $message, type: $type, scheduleAt: $scheduleAt, campaign: $campaign, metaData: $metaData, user: $user)
+                                   : $this->prepareDispatchLogs(request: $request, groups: $groups, message: $message, type: $type, scheduleAt: $scheduleAt, campaign: $campaign, metaData: $metaData, user: $user);
                               $dispatchLogs = $this->gatewayService->assignGateway(type: $type, dispatchLogs: $dispatchLogs, request: $request, user: $user);
 
                               $totalLogCount = count($dispatchLogs);
@@ -920,6 +934,69 @@ class DispatchService
                          $dispatchLogs[] = $log;
                     });
                });
+          return $dispatchLogs;
+     }
+
+     /**
+      * Fetch selected existing contacts for email dispatch without creating temporary groups.
+      */
+     protected function getSelectedEmailContacts(array $contactIds, ?User $user = null): \Illuminate\Support\Collection
+     {
+          return Contact::active()
+               ->whereIn('id', array_unique($contactIds))
+               ->whereNotNull('email_contact')
+               ->where('email_contact', '!=', '')
+               ->when($user, fn(Builder $q): Builder =>
+                    $q->where('user_id', $user->id),
+                    fn(Builder $q): Builder =>
+                         $q->whereNull('user_id'))
+               ->get();
+     }
+
+     /**
+      * Build dispatch logs directly from existing selected contacts.
+      */
+     protected function prepareDispatchLogsFromContacts(\Illuminate\Support\Collection $contacts, Message $message, ChannelTypeEnum $type, ?string $scheduleAt, ?Campaign $campaign = null, ?array $metaData = null, ?User $user = null): array
+     {
+          $dispatchLogs = [];
+          $now = Carbon::now();
+
+          $contacts->chunk(1000)->each(function ($chunk) use ($message, $type, $scheduleAt, $campaign, $user, $now, &$dispatchLogs, $metaData) {
+               $chunk->each(function (Contact $contact) use ($message, $type, $scheduleAt, $campaign, $user, $now, &$dispatchLogs, $metaData) {
+
+                    if ($type == ChannelTypeEnum::EMAIL
+                         && (site_settings('email_contact_verification') == StatusEnum::TRUE->status()
+                              || site_settings('email_contact_verification') == Status::ACTIVE->value)
+                         && $contact->email_verification != EmailVerificationStatusEnum::VERIFIED) {
+                         return;
+                    }
+
+                    if($campaign && $type == ChannelTypeEnum::EMAIL) {
+                         $metaData = Arr::set($metaData, "unsubscribe_link", $this->generateUnsubscribeLink($campaign->id, $contact->uid, $type));
+                    }
+
+                    $dispatchLogs[] = [
+                         'user_id' => $user?->id,
+                         'message_id' => $message->id,
+                         'contact_id' => $contact->id,
+                         'campaign_id' => $campaign?->id,
+                         'type' => $type->value,
+                         'gatewayable_id' => null,
+                         'gatewayable_type' => null,
+                         'priority' => PriorityEnum::LOW->value,
+                         'status' => $scheduleAt
+                              ? CommunicationStatusEnum::SCHEDULE->value
+                              : CommunicationStatusEnum::PENDING->value,
+                         'scheduled_at' => $scheduleAt
+                              ? Carbon::parse($scheduleAt)->setTimezone(config('app.timezone'))
+                              : null,
+                         'meta_data' => json_encode($metaData),
+                         'created_at' => $now,
+                         'updated_at' => $now,
+                    ];
+               });
+          });
+
           return $dispatchLogs;
      }
 
