@@ -5,6 +5,15 @@
 @section('panel')
 @php
     $jsonArray = json_encode($credentials);
+    $emailPreferences = session('user_email_dispatch_preferences', []);
+    $lastGatewayId = old('gateway_id', data_get($emailPreferences, 'gateway_id'));
+    $lastEmailFromName = old('email_from_name', data_get($emailPreferences, 'email_from_name'));
+    $lastReplyToAddress = old('reply_to_address', data_get($emailPreferences, 'reply_to_address'));
+    $oldSingleContacts = old('active_tab') == 'singleAudience' ? old('contacts') : null;
+    $oldSelectedEmailContacts = is_array($oldSingleContacts)
+        ? array_filter($oldSingleContacts, fn($contact) => filter_var($contact, FILTER_VALIDATE_EMAIL))
+        : [];
+    $singleAudienceManualEmail = is_string($oldSingleContacts) ? $oldSingleContacts : '';
 @endphp
 <main class="main-body">
     <div class="container-fluid px-0 main-content">
@@ -63,6 +72,23 @@
                             <h5 class="form-element-title">{{ translate("Recipient Email") }}</h5>
                         </div>
                         <div class="col-xxl-7 col-lg-9">
+                            <div class="form-inner mb-3">
+                                <label for="single_email_groups" class="form-label">{{ translate("Contact List") }}</label>
+                                <select class="form-select select2-search" id="single_email_groups" data-placeholder="{{ translate("Choose lists") }}" aria-label="single_email_groups" multiple>
+                                    <option value=""></option>
+                                    @foreach($groups as $group)
+                                        <option value="{{$group->id}}">{{$group->name}}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="form-inner mb-3 {{ count($oldSelectedEmailContacts) ? '' : 'd-none' }}" id="single_email_contacts_wrapper">
+                                <label for="single_email_contacts" class="form-label">{{ translate("Recipient Emails") }}<sup>*</sup></label>
+                                <select class="form-select select2-search" id="single_email_contacts" name="contacts[]" data-placeholder="{{ translate("Choose recipient emails") }}" aria-label="single_email_contacts" multiple {{ count($oldSelectedEmailContacts) ? '' : 'disabled' }}>
+                                    @foreach($oldSelectedEmailContacts as $oldContact)
+                                        <option value="{{ $oldContact }}" selected>{{ $oldContact }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
                             <div class="form-inner">
                                 <label for="email_contacts" class="form-label">{{ translate("Email Address") }}
                                   <span data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="{{ translate("Provide receiver's email address, it will be saved under "). \App\Enums\SettingKey::SINGLE_CONTACT_GROUP_NAME->value. translate(" group") }}">
@@ -76,7 +102,7 @@
                                         class="form-control check-email-address"
                                         id="email_contacts"
                                         name="contacts"
-                                        value="{{ old('active_tab') == 'singleAudience' ? old('contacts') : '' }}"
+                                        value="{{ $singleAudienceManualEmail }}"
                                         placeholder="{{ translate('Enter recipient email address') }}"
                                         data-url = "{{ route('user.verify.email') }}">
                                       <span class="input-group-text" 
@@ -92,7 +118,7 @@
                                       </span>
                                     </div>
                                 @else
-                                  <input type="text" class="form-control check-email-address" id="email_contacts" name="contacts" value="{{ old('active_tab') == 'singleAudience' ? old('contacts') : '' }}" placeholder="{{ translate('Enter recipient email address') }}" >
+                                  <input type="text" class="form-control check-email-address" id="email_contacts" name="contacts" value="{{ $singleAudienceManualEmail }}" placeholder="{{ translate('Enter recipient email address') }}" >
                                 @endif
                             </div>
                         </div>
@@ -186,14 +212,14 @@
                             <label for="gateway_id" class="form-label">{{ translate("Select Gateway") }}<sup class="text-danger">*</sup></label>
                             <select class="form-select select2-search" id="gateway_id" data-placeholder="{{ translate("Select a gateway") }}" data-show="5" aria-label="gateway_id" name="gateway_id">
                               <option value=""></option>
-                              <option value="0" {{ old('gateway_id') == '0' ? 'selected' : '' }}>{{ translate("Random Rotation") }}</option>
-                              <option value="-1" {{ old('gateway_id') == '-1' ? 'selected' : '' }}>{{ translate("Automatic") }}</option>
-                              <option value="-2" {{ old('gateway_id') == '-2' ? 'selected' : '' }}>{{ translate("Custom Gateway") }}</option>
+                              <option value="0" {{ (string) $lastGatewayId === '0' ? 'selected' : '' }}>{{ translate("Random Rotation") }}</option>
+                              <option value="-1" {{ (string) $lastGatewayId === '-1' ? 'selected' : '' }}>{{ translate("Automatic") }}</option>
+                              <option value="-2" {{ (string) $lastGatewayId === '-2' ? 'selected' : '' }}>{{ translate("Custom Gateway") }}</option>
                               @foreach($gateways as $type => $gateway)
 
                                   <optgroup label="{{ ucfirst($type) }}">
                                       @foreach($gateway as $id => $name)
-                                          <option value="{{ $id }}" {{ old('gateway_id') == (string) $id ? 'selected' : '' }}>{{ $name }}</option>
+                                          <option value="{{ $id }}" {{ (string) $lastGatewayId === (string) $id ? 'selected' : '' }}>{{ $name }}</option>
                                       @endforeach
                                   </optgroup>
                               @endforeach
@@ -284,7 +310,7 @@
                         <i class="ri-question-line"></i>
                       </span>
                     </label>
-                    <input type="text" class="form-control" name="email_from_name" id="email_from_name" placeholder="{{ translate("Enter email from name") }}" aria-label="email_from_name" autocomplete="" value="{{ old('email_from_name') }}"/>
+                    <input type="text" class="form-control" name="email_from_name" id="email_from_name" placeholder="{{ translate("Enter email from name") }}" aria-label="email_from_name" autocomplete="" value="{{ $lastEmailFromName }}"/>
                   </div>
 
                   <div class="form-inner mb-3">
@@ -292,7 +318,7 @@
                         <i class="ri-question-line"></i>
                         </span>
                     </label>
-                    <input type="email" class="form-control" name="reply_to_address" id="reply_to_address" placeholder="{{ translate("Enter reply to email address") }}" aria-label="reply_to_address" autocomplete="" value="{{ old('reply_to_address') }}"/>
+                    <input type="email" class="form-control" name="reply_to_address" id="reply_to_address" placeholder="{{ translate("Enter reply to email address") }}" aria-label="reply_to_address" autocomplete="" value="{{ $lastReplyToAddress }}"/>
                   </div>
                 </div>
               </div>
@@ -563,6 +589,88 @@
         notify('info', message);
       }
 
+      const emailPreferenceKey = 'user_email_dispatch_preferences';
+      const $singleEmailGroups = $('#single_email_groups');
+      const $singleEmailContacts = $('#single_email_contacts');
+      const $singleEmailContactsWrapper = $('#single_email_contacts_wrapper');
+      const $manualEmailInput = $('#email_contacts');
+
+      restoreEmailPreferences();
+
+      $singleEmailGroups.on('change', function() {
+
+          var selectedGroups = $(this).val();
+          if (!selectedGroups || selectedGroups.length === 0) {
+              resetSingleEmailContacts();
+              return;
+          }
+
+          $.ajax({
+              url: '{{ route("user.contact.group.fetch", ["type" => "email_contacts"]) }}',
+              type: 'POST',
+              data: {
+                  group_ids: selectedGroups,
+              },
+              headers: {
+                  'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+              },
+              success: function(response) {
+
+                  $singleEmailContacts.empty();
+                  if (response.status == true && response.contacts.length > 0) {
+                      response.contacts.forEach(function(contact) {
+                          var groupLabel = contact.group ? ` (${contact.group})` : '';
+                          $singleEmailContacts.append(new Option(`${contact.label}${groupLabel}`, contact.email));
+                      });
+                      $singleEmailContacts.prop('disabled', false);
+                      $singleEmailContactsWrapper.removeClass('d-none');
+                  } else {
+                      resetSingleEmailContacts();
+                      notify('info', response.message);
+                  }
+              },
+              error: function(error) {
+                  resetSingleEmailContacts();
+                  console.error(error);
+              }
+          });
+      });
+
+      $singleEmailContacts.on('change', function() {
+
+          if (($(this).val() || []).length > 0) {
+              $manualEmailInput.val('').prop('disabled', true);
+          } else {
+              $manualEmailInput.prop('disabled', false);
+          }
+      });
+      $singleEmailContacts.trigger('change');
+
+      function resetSingleEmailContacts() {
+
+          $singleEmailContacts.empty().prop('disabled', true);
+          $singleEmailContactsWrapper.addClass('d-none');
+          $manualEmailInput.prop('disabled', false);
+      }
+
+      function restoreEmailPreferences() {
+
+          try {
+              var preferences = JSON.parse(localStorage.getItem(emailPreferenceKey) || '{}');
+              if (!$('#gateway_id').val() && preferences.gateway_id) {
+                  $('#gateway_id').val(preferences.gateway_id).trigger('change');
+              }
+              if (!$('#email_from_name').val() && preferences.email_from_name) {
+                  $('#email_from_name').val(preferences.email_from_name);
+              }
+              if (!$('#reply_to_address').val() && preferences.reply_to_address) {
+                  $('#reply_to_address').val(preferences.reply_to_address);
+              }
+          } catch (error) {
+              localStorage.removeItem(emailPreferenceKey);
+          }
+      }
+
       $('#contacts').change(function() {
 
           var selectedValues = $(this).val();
@@ -606,10 +714,26 @@
       $('#email_send').on('submit', function(event) {
 
           var activeTabId = $('.tab-content .tab-pane.active').attr('id');
+          var selectedEmails = $singleEmailContacts.val() || [];
           $('#active_tab').val(activeTabId);
+          localStorage.setItem(emailPreferenceKey, JSON.stringify({
+              gateway_id: $('#gateway_id').val(),
+              email_from_name: $('#email_from_name').val(),
+              reply_to_address: $('#reply_to_address').val()
+          }));
+
+          if (activeTabId === 'singleAudience' && selectedEmails.length > 0) {
+              $singleEmailContacts.prop('disabled', false);
+              $manualEmailInput.prop('disabled', true);
+          } else {
+              $singleEmailContacts.prop('disabled', true);
+              $manualEmailInput.prop('disabled', false);
+          }
+
           if (activeTabId !== 'singleAudience') {
 
               $('#singleAudience input:not([name="active_tab"])').val('');
+              $singleEmailContacts.prop('disabled', true);
           }
           if (activeTabId !== 'groupAudience') {
 
@@ -650,6 +774,7 @@
                 removeCustomGatewayFields(); 
             }
         });
+        $gatewaySelect.trigger('change');
 
         $gatewayType.on('change', function() {
 

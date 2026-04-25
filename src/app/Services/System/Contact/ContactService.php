@@ -1297,11 +1297,41 @@ class ContactService
             
             $group = $this->createGroupFromCsv($type, $contactsInput, $user);
             $groups->push($group);
+        } elseif ($type === ChannelTypeEnum::EMAIL && is_array($contactsInput) && $this->containsOnlyEmailAddresses($contactsInput)) {
+
+            $group = $this->createGroupFromApiContacts(
+                $type,
+                collect($contactsInput)
+                    ->unique()
+                    ->map(fn(string $email): array => [$type->value => $email])
+                    ->values()
+                    ->toArray(),
+                $user
+            );
+            $groups->push($group);
         } else {
             
             $groups = $this->getGroupsByIds($contactsInput, $user);
         }
         return $groups;
+    }
+
+    /**
+     * Check whether a contacts payload is a selected list of email addresses.
+     */
+    protected function containsOnlyEmailAddresses(array $contactsInput): bool
+    {
+        if (empty($contactsInput)) {
+            return false;
+        }
+
+        foreach ($contactsInput as $contact) {
+            if (!is_string($contact) || !filter_var($contact, FILTER_VALIDATE_EMAIL)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

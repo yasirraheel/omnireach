@@ -416,6 +416,14 @@ class DispatchService
                                    : 'dispatch') . " logs are being processed")];
           }
 
+          if ($type === ChannelTypeEnum::EMAIL && !$isCampaign) {
+               session()->put("{$panelType}_email_dispatch_preferences", [
+                    'gateway_id' => $request->input('gateway_id'),
+                    'email_from_name' => $request->input('email_from_name'),
+                    'reply_to_address' => $request->input('reply_to_address'),
+               ]);
+          }
+
           return redirect()
                     ->route("{$panelType}.communication.{$type->value}"
                          . ($isCampaign

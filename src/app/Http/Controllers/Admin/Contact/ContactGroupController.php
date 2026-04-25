@@ -199,7 +199,46 @@ class ContactGroupController extends Controller
     public function fetch(Request $request, $type = null) {
         
         try {
-            
+
+            if ($type == "email_contacts") {
+
+                $groupIds = $request->input('group_ids', []);
+
+                if (empty($groupIds)) {
+                    return response()->json(['status' => false, 'message' => translate("No groups are selected")]);
+                }
+
+                $contacts = Contact::whereIn('group_id', $groupIds)
+                    ->whereNotNull('email_contact')
+                    ->where('email_contact', '!=', '')
+                    ->with('group:id,name')
+                    ->orderBy('first_name')
+                    ->get(['id', 'group_id', 'first_name', 'last_name', 'email_contact'])
+                    ->unique('email_contact')
+                    ->values()
+                    ->map(function (Contact $contact) {
+                        $name = trim("{$contact->first_name} {$contact->last_name}");
+
+                        return [
+                            'id' => $contact->id,
+                            'email' => $contact->email_contact,
+                            'name' => $name,
+                            'group' => $contact->group?->name,
+                            'label' => $name
+                                ? "{$name} <{$contact->email_contact}>"
+                                : $contact->email_contact,
+                        ];
+                    });
+
+                return response()->json([
+                    'status' => $contacts->isNotEmpty(),
+                    'contacts' => $contacts,
+                    'message' => $contacts->isNotEmpty()
+                        ? translate('Contacts loaded successfully')
+                        : translate('No email contacts found for the selected groups'),
+                ]);
+            }
+
             if ($type == "meta_data") {
 
                 $groupIds = $request->input('group_ids');

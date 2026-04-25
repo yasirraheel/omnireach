@@ -27,6 +27,14 @@ class EmailDispatchRequest extends FormRequest
                 } elseif (is_array($value)) {
                     if (empty($value)) {
                         $fail('At least one group must be selected.');
+                        return;
+                    }
+
+                    $allEmails = collect($value)->every(fn($item) => is_string($item) && filter_var($item, FILTER_VALIDATE_EMAIL));
+                    $allGroups = collect($value)->every(fn($item) => is_numeric($item));
+
+                    if (!$allEmails && !$allGroups) {
+                        $fail('Select valid email addresses or valid contact groups.');
                     }
                 } elseif (!$value instanceof \Illuminate\Http\UploadedFile) {
                     $fail('The contacts field must be an email address, group selection, or CSV file.');
