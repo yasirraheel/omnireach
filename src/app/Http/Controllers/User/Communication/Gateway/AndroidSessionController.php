@@ -9,9 +9,11 @@ use App\Traits\ModelAction;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use App\Models\AndroidSession;
+use App\Models\AndroidApkVersion;
 use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use App\Enums\System\ChannelTypeEnum;
 use Illuminate\Support\Facades\Session;
 use App\Exceptions\ApplicationException;
@@ -45,6 +47,48 @@ class AndroidSessionController extends Controller
         Session::put("menu_active", false);
         $user = auth()->user();
         return $this->gatewayService->loadLogs(channel: ChannelTypeEnum::SMS, type: SmsGatewayTypeEnum::ANDROID, user: $user);
+    }
+
+    /**
+     * Download the currently selected Android gateway APK.
+     */
+    public function download(): BinaryFileResponse|RedirectResponse
+    {
+        $activeApkId = site_settings('active_android_apk_id');
+        $activeApk = $activeApkId ? AndroidApkVersion::find($activeApkId) : null;
+        $apkPath = config('setting.file_path.android_apk_file.path');
+
+        if ($activeApk) {
+            $filePath = base_path('../' . $apkPath . '/' . basename($activeApk->file_name));
+
+            if (is_file($filePath)) {
+                return response()->download(
+                    $filePath,
+                    $this->apkDownloadName($activeApk->version),
+                    ['Content-Type' => 'application/vnd.android.package-archive']
+                );
+            }
+        }
+
+        $legacyApk = site_settings('android_apk_file');
+        if ($legacyApk) {
+            $legacyPath = base_path('../' . $apkPath . '/' . basename($legacyApk));
+
+            if (is_file($legacyPath)) {
+                return response()->download(
+                    $legacyPath,
+                    $this->apkDownloadName(),
+                    ['Content-Type' => 'application/vnd.android.package-archive']
+                );
+            }
+        }
+
+        if (site_settings('app_link')) {
+            return redirect()->away(site_settings('app_link'));
+        }
+
+        $notify[] = ['error', translate('No Android APK file is currently available')];
+        return back()->withNotify($notify);
     }
     
     /**
@@ -225,4 +269,17 @@ class AndroidSessionController extends Controller
     ##  Unused Functions  ##
     ## ------------------ ##
     public function create() {}
+
+    private function apkDownloadName(?string $version = null): string
+    {
+        $siteName = $this->safeFilePart(site_settings('site_name', 'app'));
+        $versionName = $version ? '-' . $this->safeFilePart($version) : '';
+
+        return $siteName . '-android-gateway' . $versionName . '.apk';
+    }
+
+    private function safeFilePart(string $value): string
+    {
+        return trim(preg_replace('/[^A-Za-z0-9._-]+/', '-', $value), '-_.') ?: 'app';
+    }
 }

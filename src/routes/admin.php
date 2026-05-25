@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\Auth\LoginController;
 use App\Http\Controllers\Admin\Core\AdminController;
 use App\Http\Controllers\Admin\Core\ReportController;
 use App\Http\Controllers\Admin\Core\SettingController;
+use App\Http\Controllers\Admin\Core\AndroidApkController;
 use App\Http\Controllers\Admin\Core\LanguageController;
 use App\Http\Controllers\Admin\Core\CurrencyController;
 use App\Http\Controllers\Admin\Core\CustomerController;
@@ -900,6 +901,12 @@ Route::middleware([
 
                 Route::get('setting/{type?}', 'index')->name('setting');
                 Route::post('setting/store', 'store')->name('setting.store');
+            });
+
+            Route::controller(AndroidApkController::class)->prefix('apk/')->name('apk.')->group(function() {
+
+                Route::post('upload/chunk', 'uploadChunk')->name('upload.chunk');
+                Route::post('upload/complete', 'completeUpload')->name('upload.complete');
             });
 
             Route::controller(CurrencyController::class)->prefix('currency/')->name('currency.')->group(function () {

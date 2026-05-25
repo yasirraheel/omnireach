@@ -109,17 +109,75 @@
                       </div>
                       <div class="col-12">
                         <div class="form-inner">
-                          <label for="android_apk_file" class="form-label">{{ translate("Upload Android APK File") }}</label>
-                          <input type="file" name="site_settings[android_apk_file]" id="android_apk_file" class="form-control" accept=".apk,application/vnd.android.package-archive"/>
-                          <p class="form-element-note">{{ translate("Upload an .apk file up to 100 MB. An uploaded APK takes priority over the link above for member downloads.") }}</p>
+                          <label class="form-label">{{ translate("Android APK Versions") }}</label>
+                          <div class="row gy-3 align-items-end">
+                            <div class="col-lg-6">
+                              <label for="android_apk_upload" class="form-label">{{ translate("APK File") }}</label>
+                              <input type="file" id="android_apk_upload" class="form-control" accept=".apk,application/vnd.android.package-archive"/>
+                            </div>
+                            <div class="col-lg-3">
+                              <label for="android_apk_version" class="form-label">{{ translate("Version") }}</label>
+                              <input type="text" id="android_apk_version" class="form-control" value="v{{ $apkVersions->count() + 1 }}" placeholder="v1.0.0"/>
+                            </div>
+                            <div class="col-lg-3">
+                              <button type="button" id="uploadAndroidApk" class="i-btn btn--primary btn--md w-100">
+                                <i class="ri-upload-cloud-line"></i> {{ translate("Upload APK") }}
+                              </button>
+                            </div>
+                          </div>
+                          <p class="form-element-note mt-2">{{ translate("APK files up to 100 MB are uploaded separately in chunks. After upload, select the active version below and save these settings.") }}</p>
+                          <div id="apkUploadProgressWrap" class="mt-3 d-none">
+                            <div class="progress">
+                              <div id="apkUploadProgress" class="progress-bar" role="progressbar" style="width: 0%">0%</div>
+                            </div>
+                          </div>
+                          <div class="table-container mt-4">
+                            <table>
+                              <thead>
+                                <tr>
+                                  <th>{{ translate("Active") }}</th>
+                                  <th>{{ translate("Version") }}</th>
+                                  <th>{{ translate("File") }}</th>
+                                  <th>{{ translate("Size") }}</th>
+                                  <th>{{ translate("Uploaded") }}</th>
+                                </tr>
+                              </thead>
+                              <tbody id="apkVersionList">
+                                <tr>
+                                  <td>
+                                    <input type="radio" name="site_settings[active_android_apk_id]" value="" {{ !site_settings('active_android_apk_id') ? 'checked' : '' }}>
+                                  </td>
+                                  <td>{{ translate("External link fallback") }}</td>
+                                  <td>{{ site_settings('app_link') ?: translate("No link configured") }}</td>
+                                  <td>-</td>
+                                  <td>-</td>
+                                </tr>
+                                @forelse($apkVersions as $apkVersion)
+                                  <tr>
+                                    <td>
+                                      <input type="radio" name="site_settings[active_android_apk_id]" value="{{ $apkVersion->id }}" {{ (string) site_settings('active_android_apk_id') === (string) $apkVersion->id ? 'checked' : '' }}>
+                                    </td>
+                                    <td>{{ $apkVersion->version }}</td>
+                                    <td>
+                                      <a href="{{ asset(config('setting.file_path.android_apk_file.path') . '/' . $apkVersion->file_name) }}" target="_blank" rel="noopener">{{ $apkVersion->file_name }}</a>
+                                    </td>
+                                    <td>{{ number_format($apkVersion->file_size / 1048576, 2) }} MB</td>
+                                    <td>{{ $apkVersion->created_at->format('M d, Y H:i') }}</td>
+                                  </tr>
+                                @empty
+                                  <tr id="apkVersionEmpty">
+                                    <td colspan="5" class="text-muted text-center">{{ translate("No uploaded APK versions found") }}</td>
+                                  </tr>
+                                @endforelse
+                              </tbody>
+                            </table>
+                          </div>
                           @if(site_settings("android_apk_file"))
-                            <a class="d-inline-block mt-2" href="{{ asset(config('setting.file_path.android_apk_file.path') . '/' . site_settings('android_apk_file')) }}" target="_blank" rel="noopener">
-                              <i class="ri-download-line"></i> {{ translate("Download Current Uploaded APK") }}
-                            </a>
+                            <p class="form-element-note mt-2">{{ translate("A legacy uploaded APK remains available until a version above is selected and settings are saved.") }}</p>
                             <div class="form-check mt-2">
                               <input class="form-check-input" type="checkbox" name="site_settings[remove_android_apk_file]" value="1" id="remove_android_apk_file">
                               <label class="form-check-label" for="remove_android_apk_file">
-                                {{ translate("Remove uploaded APK and use the APK link instead") }}
+                                {{ translate("Remove legacy uploaded APK when saving settings") }}
                               </label>
                             </div>
                           @endif
@@ -641,6 +699,105 @@
     initColorCodeInput();
 
     $(document).ready(function() {
+      const apkChunkSize = 4 * 1024 * 1024;
+      const maxApkSize = 100 * 1024 * 1024;
+      const apkChunkUrl = @json(route('admin.system.apk.upload.chunk'));
+      const apkCompleteUrl = @json(route('admin.system.apk.upload.complete'));
+      const csrfToken = @json(csrf_token());
+
+      $('#uploadAndroidApk').on('click', async function() {
+        const button = $(this);
+        const file = $('#android_apk_upload')[0].files[0];
+        const version = $('#android_apk_version').val().trim();
+
+        if (!file || !/\.apk$/i.test(file.name)) {
+          notify('error', @json(translate('Please select an APK file to upload')));
+          return;
+        }
+        if (file.size > maxApkSize) {
+          notify('error', @json(translate('APK file size must be 100 MB or less')));
+          return;
+        }
+        if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(version)) {
+          notify('error', @json(translate('Enter a valid version such as v1.0.0')));
+          return;
+        }
+
+        const uploadId = 'apk_' + Date.now() + '_' + Math.random().toString(36).substring(2, 12);
+        const totalChunks = Math.ceil(file.size / apkChunkSize);
+        const progressWrap = $('#apkUploadProgressWrap');
+        const progress = $('#apkUploadProgress');
+
+        button.prop('disabled', true);
+        progressWrap.removeClass('d-none');
+        progress.css('width', '0%').text('0%');
+
+        try {
+          for (let index = 0; index < totalChunks; index++) {
+            const data = new FormData();
+            data.append('_token', csrfToken);
+            data.append('upload_id', uploadId);
+            data.append('original_name', file.name);
+            data.append('version', version);
+            data.append('file_size', file.size);
+            data.append('chunk_index', index);
+            data.append('total_chunks', totalChunks);
+            data.append('chunk', file.slice(index * apkChunkSize, (index + 1) * apkChunkSize), index + '.part');
+
+            await apkRequest(apkChunkUrl, data);
+            const percent = Math.round(((index + 1) / totalChunks) * 95);
+            progress.css('width', percent + '%').text(percent + '%');
+          }
+
+          const completeData = new FormData();
+          completeData.append('_token', csrfToken);
+          completeData.append('upload_id', uploadId);
+          completeData.append('original_name', file.name);
+          completeData.append('file_size', file.size);
+          completeData.append('total_chunks', totalChunks);
+          completeData.append('version', version);
+
+          const result = await apkRequest(apkCompleteUrl, completeData);
+          const apk = result.version;
+          $('#apkVersionEmpty').remove();
+          $('#apkVersionList input[type=radio]').prop('checked', false);
+          $('#apkVersionList').prepend(
+            '<tr>' +
+              '<td><input type="radio" name="site_settings[active_android_apk_id]" value="' + apk.id + '" checked></td>' +
+              '<td>' + apk.version + '</td>' +
+              '<td><a href="' + apk.url + '" target="_blank" rel="noopener">' + apk.file_name + '</a></td>' +
+              '<td>' + (apk.file_size / 1048576).toFixed(2) + ' MB</td>' +
+              '<td>' + apk.created_at + '</td>' +
+            '</tr>'
+          );
+          progress.css('width', '100%').text('100%');
+          $('#android_apk_upload').val('');
+          $('#android_apk_version').val('');
+          notify('success', result.message);
+        } catch (error) {
+          notify('error', error.message);
+        } finally {
+          button.prop('disabled', false);
+        }
+      });
+
+      async function apkRequest(url, data) {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json'
+          },
+          body: data
+        });
+        const result = await response.json();
+
+        if (!response.ok || !result.status) {
+          const errors = result.errors ? Object.values(result.errors)[0] : null;
+          throw new Error(errors ? errors[0] : (result.message || @json(translate('Unable to upload APK file'))));
+        }
+
+        return result;
+      }
 
       $('.copy-text').click(function() {
 

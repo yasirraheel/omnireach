@@ -22,6 +22,7 @@ return [
     "api_sms_method"       => StatusEnum::TRUE->status(),
     "app_link"             => "",
     "android_apk_file"     => "",
+    "active_android_apk_id"=> "",
     
     "theme_dir"            => StatusEnum::FALSE->status(),
     "theme_mode"           => StatusEnum::FALSE->status(),

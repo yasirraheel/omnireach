@@ -112,6 +112,9 @@ class SettingController extends Controller
                     || isset($request->site_settings[SettingKey::WHATSAPP_OFF_CANVAS_GUIDE->value])) {
                         $reload = true;
                 }
+                if (isset($request->site_settings['active_android_apk_id'])) {
+                    $reload = true;
+                }
                 $this->settingService->updateSettings($request->site_settings, $request->input("channel", "site_settings"));
                 $message = translate('Settings Updated Successfully');
 

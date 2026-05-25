@@ -4,9 +4,9 @@
 @extends('user.gateway.index')
 @section('tab-content')
 @php
-    $uploadedApk = site_settings('android_apk_file');
-    $apkDownloadUrl = $uploadedApk
-        ? asset(config('setting.file_path.android_apk_file.path') . '/' . $uploadedApk)
+    $hostedApkAvailable = site_settings('active_android_apk_id') || site_settings('android_apk_file');
+    $apkDownloadUrl = $hostedApkAvailable
+        ? route('user.gateway.sms.android.download')
         : site_settings('app_link');
 @endphp
 
@@ -51,7 +51,7 @@
             <div class="card-header-right">
                 <div class="d-flex gap-3 align-item-center">
                     @if($apkDownloadUrl)
-                        <a class="i-btn btn--info btn--sm" href="{{ $apkDownloadUrl }}" @if($uploadedApk) download="android-gateway.apk" @endif>
+                        <a class="i-btn btn--info btn--sm" href="{{ $apkDownloadUrl }}">
                             <i class="ri-download-line"></i> {{ translate("Download APK File") }}
                         </a>
                     @endif

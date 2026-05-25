@@ -6,6 +6,7 @@ use App\Models\Setting;
 use App\Models\Gateway;
 use App\Enums\StatusEnum;
 use App\Models\PricingPlan;
+use App\Models\AndroidApkVersion;
 use Illuminate\Support\Arr;
 use App\Enums\Common\Status;
 use App\Enums\SettingKey;
@@ -14,6 +15,7 @@ use Illuminate\Http\UploadedFile;
 use App\Enums\System\ChannelTypeEnum;
 use App\Rules\FileExtentionCheckRule;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Schema;
 use App\Enums\System\SessionStatusEnum;
 use App\Exceptions\ApplicationException;
 use App\Service\Admin\Core\FileService;
@@ -36,7 +38,10 @@ class SettingService {
                     "countries"     => json_decode(file_get_contents(resource_path('views/partials/country_file.json'))),
                     "timeLocations" => collect(timezone_identifiers_list())->groupBy(function($item) {
                         return explode('/', $item)[0];
-                    })
+                    }),
+                    "apkVersions"   => Schema::hasTable('android_apk_versions')
+                        ? AndroidApkVersion::latest()->get()
+                        : collect(),
                 ];
                 $data = array_merge($data, $type_data);
                 break;
@@ -278,8 +283,9 @@ class SettingService {
                     $rules[$key . "." . $data_key] = ['nullable', 'image', new FileExtentionCheckRule(json_decode(site_settings('mime_types'), true))];
                 }
             } else {
-                
-                $rules[$key . "." . $data_key] = ['nullable'];
+                $rules[$key . "." . $data_key] = $data_key === 'active_android_apk_id'
+                    ? ['nullable', 'exists:android_apk_versions,id']
+                    : ['nullable'];
                 $messages[$key . "." . $data_key . '.nullable'] = ucfirst(str_replace('_', ' ', $data_key)) . ' ' . translate('Field is Required');
             }
         }

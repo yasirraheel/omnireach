@@ -207,6 +207,7 @@ Route::middleware([
                     Route::controller(AndroidSessionController::class)
                             ->group(function () {
 
+                        Route::get('download', 'download')->name('download');
                         Route::post('status/update', 'statusUpdate')->name('status.update');
                         Route::post('bulk/action', 'bulk')->name('bulk');
                     });
