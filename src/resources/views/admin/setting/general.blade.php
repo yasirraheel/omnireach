@@ -104,7 +104,25 @@
                         <div class="form-inner">
                           <label for="app_link" class="form-label">{{translate("Android APK File Link")}}</label>
                           <input type="text" name="site_settings[app_link]" id="app_link" class="form-control" placeholder="{{ translate("Enter the link for the App") }}" value="{{ site_settings("app_link") }}"/>
-                          <p class="form-element-note">{{ translate("Include http/https with your link. Members will use this link to download the app") }}</p>
+                          <p class="form-element-note">{{ translate("Include http/https with your link. This link is used when no APK is uploaded below.") }}</p>
+                        </div>
+                      </div>
+                      <div class="col-12">
+                        <div class="form-inner">
+                          <label for="android_apk_file" class="form-label">{{ translate("Upload Android APK File") }}</label>
+                          <input type="file" name="site_settings[android_apk_file]" id="android_apk_file" class="form-control" accept=".apk,application/vnd.android.package-archive"/>
+                          <p class="form-element-note">{{ translate("Upload an .apk file up to 100 MB. An uploaded APK takes priority over the link above for member downloads.") }}</p>
+                          @if(site_settings("android_apk_file"))
+                            <a class="d-inline-block mt-2" href="{{ asset(config('setting.file_path.android_apk_file.path') . '/' . site_settings('android_apk_file')) }}" target="_blank" rel="noopener">
+                              <i class="ri-download-line"></i> {{ translate("Download Current Uploaded APK") }}
+                            </a>
+                            <div class="form-check mt-2">
+                              <input class="form-check-input" type="checkbox" name="site_settings[remove_android_apk_file]" value="1" id="remove_android_apk_file">
+                              <label class="form-check-label" for="remove_android_apk_file">
+                                {{ translate("Remove uploaded APK and use the APK link instead") }}
+                              </label>
+                            </div>
+                          @endif
                         </div>
                       </div>
                     </div>

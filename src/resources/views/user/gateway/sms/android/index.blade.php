@@ -3,6 +3,12 @@
 @endpush
 @extends('user.gateway.index')
 @section('tab-content')
+@php
+    $uploadedApk = site_settings('android_apk_file');
+    $apkDownloadUrl = $uploadedApk
+        ? asset(config('setting.file_path.android_apk_file.path') . '/' . $uploadedApk)
+        : site_settings('app_link');
+@endphp
 
 <div class="tab-pane active fade show" id="{{url()->current()}}" role="tabpanel">
     <div class="table-filter mb-4">
@@ -44,9 +50,11 @@
             </div>
             <div class="card-header-right">
                 <div class="d-flex gap-3 align-item-center">
-                    <a class="i-btn btn--info btn--sm" href="{{ site_settings("app_link") }}">
-                        <i class="ri-download-line"></i> {{ translate("Download APK File") }}
-                    </a>
+                    @if($apkDownloadUrl)
+                        <a class="i-btn btn--info btn--sm" href="{{ $apkDownloadUrl }}" @if($uploadedApk) download="android-gateway.apk" @endif>
+                            <i class="ri-download-line"></i> {{ translate("Download APK File") }}
+                        </a>
+                    @endif
                     @if($allowedAccess->type == App\Enums\StatusEnum::FALSE->status())
                         <button class="i-btn btn--primary btn--sm" type="button" data-bs-toggle="modal" data-bs-target="#addAndroidGateway">
                             <i class="ri-add-fill fs-16"></i> {{ translate("Add Gateway") }}

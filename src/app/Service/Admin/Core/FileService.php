@@ -275,8 +275,8 @@ class FileService
                 });
             }
 
-            // Check if the file is an SVG
-            if ($file->getClientOriginalExtension() === 'svg') {
+            // Binary downloads must be stored as uploaded, not decoded as images.
+            if (in_array(strtolower($file->getClientOriginalExtension()), ['svg', 'apk'], true)) {
                 $file->move($filePath, $file_name);
             } else {
                 // Intervention Image v3 - Use Imagick if available, otherwise fall back to GD

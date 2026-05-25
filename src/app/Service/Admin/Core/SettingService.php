@@ -263,7 +263,20 @@ class SettingService {
 
             if ($data_value instanceof UploadedFile) {
 
-                $rules[$key . "." . $data_key] = ['nullable', 'image', new FileExtentionCheckRule(json_decode(site_settings('mime_types'), true))];
+                if ($data_key === 'android_apk_file') {
+                    $rules[$key . "." . $data_key] = [
+                        'nullable',
+                        'file',
+                        'max:102400',
+                        function ($attribute, UploadedFile $file, $fail) {
+                            if (strtolower($file->getClientOriginalExtension()) !== 'apk') {
+                                $fail(translate('Android APK file must be in apk format'));
+                            }
+                        },
+                    ];
+                } else {
+                    $rules[$key . "." . $data_key] = ['nullable', 'image', new FileExtentionCheckRule(json_decode(site_settings('mime_types'), true))];
+                }
             } else {
                 
                 $rules[$key . "." . $data_key] = ['nullable'];
@@ -288,6 +301,17 @@ class SettingService {
 
         $json_keys = Arr::get(config('setting'), 'json_object', []);
         $fileService = new FileService();
+        $removeAndroidApk = Arr::pull($request_data, 'remove_android_apk_file');
+        $uploadedAndroidApk = Arr::get($request_data, 'android_apk_file');
+
+        if ($removeAndroidApk && !($uploadedAndroidApk instanceof UploadedFile)) {
+            $fileService->unlinkFile(
+                site_settings('android_apk_file'),
+                config('setting.file_path.android_apk_file.path')
+            );
+            $request_data['android_apk_file'] = '';
+        }
+
         foreach ($request_data as $key => $value) {
             
             if ($value instanceof UploadedFile) {

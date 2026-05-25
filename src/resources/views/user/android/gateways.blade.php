@@ -1,5 +1,11 @@
 @extends('user.layouts.app')
 @section('panel')
+@php
+    $uploadedApk = site_settings('android_apk_file');
+    $apkDownloadUrl = $uploadedApk
+        ? asset(config('setting.file_path.android_apk_file.path') . '/' . $uploadedApk)
+        : ($general->app_link ?? site_settings('app_link'));
+@endphp
 <section>
     <div class="container-fluid p-0">
         <div class="row gy-4">
@@ -8,9 +14,11 @@
                 <div class="card">
                     <div class="card-header">
                         <h4 class="card-title">{{translate("Android Gateway")}}</h4>
-                        <a href="{{ $general->app_link }}" class="i-btn info--btn btn--md text-white"  title="{{translate('Download APK file')}}">
-                            {{translate('Download APK file')}}
-                        </a>
+                        @if($apkDownloadUrl)
+                            <a href="{{ $apkDownloadUrl }}" class="i-btn info--btn btn--md text-white" title="{{translate('Download APK file')}}" @if($uploadedApk) download="android-gateway.apk" @endif>
+                                {{translate('Download APK file')}}
+                            </a>
+                        @endif
                     </div>
                    
                     <div class="card-body px-0">

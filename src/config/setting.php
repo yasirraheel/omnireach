@@ -236,6 +236,9 @@ return [
             'fall_back_path'    => 'assets/file/default/',
             'size'              => '600x400',
         ],
+        'android_apk_file' => [
+            'path'              => 'assets/file/apps/android',
+        ],
         'whatsapp_off_canvas_guide' => [
             'path'              => 'assets/file/images/channel/whatsapp',
             'fall_back_path'    => 'assets/file/default/',

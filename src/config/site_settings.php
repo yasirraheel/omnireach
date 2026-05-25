@@ -21,6 +21,7 @@ return [
     "webhook_verify_token" => "xsender",
     "api_sms_method"       => StatusEnum::TRUE->status(),
     "app_link"             => "",
+    "android_apk_file"     => "",
     
     "theme_dir"            => StatusEnum::FALSE->status(),
     "theme_mode"           => StatusEnum::FALSE->status(),
