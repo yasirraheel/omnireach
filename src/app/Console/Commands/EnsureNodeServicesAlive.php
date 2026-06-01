@@ -115,7 +115,16 @@ class EnsureNodeServicesAlive extends Command
             return [];
         }
 
-        $processes = json_decode($result['output'], true);
+        $jsonStart = strpos($result['output'], '[');
+
+        if ($jsonStart === false) {
+            Log::warning('Node service health check received an unexpected PM2 process list.', [
+                'output' => $result['output'],
+            ]);
+            return [];
+        }
+
+        $processes = json_decode(substr($result['output'], $jsonStart), true);
 
         return is_array($processes) ? $processes : [];
     }
