@@ -124,9 +124,26 @@ class EnsureNodeServicesAlive extends Command
             return [];
         }
 
-        $processes = json_decode(substr($result['output'], $jsonStart), true);
+        $jsonEnd = strrpos($result['output'], ']');
 
-        return is_array($processes) ? $processes : [];
+        if ($jsonEnd === false || $jsonEnd < $jsonStart) {
+            Log::warning('Node service health check received an incomplete PM2 process list.', [
+                'output' => $result['output'],
+            ]);
+            return [];
+        }
+
+        $json = substr($result['output'], $jsonStart, $jsonEnd - $jsonStart + 1);
+        $processes = json_decode($json, true);
+
+        if (!is_array($processes)) {
+            Log::warning('Node service health check could not parse PM2 process list.', [
+                'json_error' => json_last_error_msg(),
+            ]);
+            return [];
+        }
+
+        return $processes;
     }
 
     private function serviceStatus(array $processes, string $name): ?string
