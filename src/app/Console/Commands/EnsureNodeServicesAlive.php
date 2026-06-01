@@ -115,7 +115,7 @@ class EnsureNodeServicesAlive extends Command
             return [];
         }
 
-        $jsonStart = strpos($result['output'], '[');
+        $jsonStart = strpos($result['output'], '[{');
 
         if ($jsonStart === false) {
             Log::warning('Node service health check received an unexpected PM2 process list.', [
