@@ -31,6 +31,8 @@ use App\Services\System\Communication\DispatchService;
 use App\Services\System\Communication\GatewayService;
 use App\Services\System\AutomationService;
 use App\Jobs\CheckWorkflowTriggersJob;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Http\JsonResponse;
 
 class CronController extends Controller
@@ -64,6 +66,7 @@ class CronController extends Controller
                 "last_cron_run" => Carbon::now()
             ]);
 
+            $this->ensureNodeServicesAlive();
 
             $this->smsApiSchedule();
             $this->smsAndroidSchedule();
@@ -79,6 +82,20 @@ class CronController extends Controller
 
             $this->checkPlanExpiration();
         } catch (Throwable $throwable) {
+        }
+    }
+
+    /**
+     * Keep PM2 Node services alive from existing shared-hosting cron calls.
+     *
+     * @return void
+     */
+    private function ensureNodeServicesAlive(): void
+    {
+        try {
+            Artisan::call('node-services:ensure-alive');
+        } catch (Throwable $throwable) {
+            Log::warning('Node service health check failed from cron: ' . $throwable->getMessage());
         }
     }
 

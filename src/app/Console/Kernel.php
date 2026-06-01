@@ -30,6 +30,13 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
+        // One-shot PM2 health check for shared hosting cron.
+        // This does not loop; it only revives the Node services if PM2 reports them down.
+        $schedule->command('node-services:ensure-alive')
+            ->everyMinute()
+            ->name('node-services:ensure-alive')
+            ->withoutOverlapping(2);
+
         // Main automation task - runs every minute
         // Processes campaigns, scheduled messages, subscriptions
         // Only runs if mode allows scheduler to handle campaigns
