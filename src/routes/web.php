@@ -9,6 +9,7 @@ use App\Http\Controllers\TrackingController;
 use App\Http\Controllers\QueueController;
 use App\Http\Controllers\WebhookController;
 use App\Http\Controllers\FrontendController;
+use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\User\HomeController;
 use App\Http\Controllers\User\Auth\LoginController;
 use App\Http\Controllers\User\Auth\PasswordController;
@@ -278,6 +279,12 @@ Route::middleware([
     
     Route::get('/unsubscribe', [HomeController::class, 'unsubscribe'])->name('unsubscribe');
     Route::get('/unsubscribe/success', [HomeController::class, 'unsubscribeSuccess'])->name('unsubscribe.success');
+    
+    // General Subscriber System Routes
+    Route::get('/subscribe/form/{user_uid}/{group_uid?}', [SubscriptionController::class, 'showSubscribeForm'])->name('subscribe.form');
+    Route::post('/subscribe', [SubscriptionController::class, 'subscribe'])->name('subscribe.post');
+    Route::get('/subscribe/verify/{uid}/{hash}', [SubscriptionController::class, 'verifySubscription'])->name('subscribe.verify');
+    Route::get('/unsubscribe/general/{user_uid}/{email}/{hash}', [SubscriptionController::class, 'unsubscribeGeneral'])->name('unsubscribe.general');
     
     Route::get('/domain-unverified', [CoreController::class, 'domainNotVerified'])->name('domain.unverified')->withoutMiddleware(['domain.verified' , 'check.domain']);
     

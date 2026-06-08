@@ -338,6 +338,20 @@
                     </label>
                     <input type="text" class="form-control" name="message[subject]" id="subject" placeholder="{{ translate("Enter email subject") }}" aria-label="subject" autocomplete="" value="{{ old('message.subject') }}"/>
                 </div>
+                
+                <div class="form-inner mb-3">
+                    <label class="form-label"> {{ translate("Include Unsubscribe Link") }} </label>
+                    <div class="form-inner-switch">
+                      <label class="pointer" for="include_unsubscribe">{{translate('Append an unsubscribe link to the bottom of the email')}}</label>
+                      <div class="switch-wrapper mb-1 checkbox-data">
+                        <input type="checkbox" value="1" name="include_unsubscribe" id="include_unsubscribe" class="switch-input" checked>
+                        <label for="include_unsubscribe" class="toggle">
+                          <span></span>
+                        </label>
+                      </div>
+                    </div>
+                </div>
+
                 <div class="form-inner position-relative speech-to-text" id="messageBox">
                   <div class="d-flex align-items-center justify-content-between w-100 flex-wrap gap-2 mb-2">
                     <label for="message" class="form-label mb-0">{{ translate("Write message") }}<sup class="text-danger">*</sup></label>

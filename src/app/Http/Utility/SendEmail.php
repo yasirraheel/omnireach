@@ -114,8 +114,8 @@ class SendEmail
             $mail->Body    = $messages;
             $mail->AltBody = strip_tags(str_replace(['<br>', '<br/>', '<br />'], "\n", $messages));
 
-            // List-Unsubscribe headers for campaigns
-            if ($emailLog->campaign_id !== null && Arr::has($emailLog->meta_data, "unsubscribe_link")) {
+            // List-Unsubscribe headers
+            if (Arr::has($emailLog->meta_data, "unsubscribe_link")) {
                 $unsubscribeLink = Arr::get($emailLog->meta_data, "unsubscribe_link");
                 $mail->addCustomHeader('List-Unsubscribe', '<mailto:' . $emailMethod->address . '?subject=unsubscribe>, <' . $unsubscribeLink . '>');
                 $mail->addCustomHeader('List-Unsubscribe-Post', 'One-Click');

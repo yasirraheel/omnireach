@@ -259,6 +259,22 @@ class EmailService
                 $message = "Unknown contact type.";
                 break;
         }
+
+        // Filter out suppressed emails
+        $emails = array_column($meta_data, 'contact');
+        if (!empty($emails)) {
+            $suppressedEmails = \Illuminate\Support\Facades\DB::table('email_suppressions')
+                ->whereIn('email', $emails)
+                ->pluck('email')
+                ->toArray();
+
+            if (!empty($suppressedEmails)) {
+                $meta_data = array_filter($meta_data, function($item) use ($suppressedEmails) {
+                    return !in_array($item['contact'], $suppressedEmails);
+                });
+                $meta_data = array_values($meta_data); // Reset array keys
+            }
+        }
         if(count($meta_data) <= 0 || !$pass) {
             return [
                 $status,
@@ -378,8 +394,9 @@ class EmailService
             "user_id" => $user_id
         ];
 
+        $user_uid = null;
         if($user_id) {
-
+            $user_uid = User::where("id", $user_id)->value('uid');
             $user = User::where("id", $user_id)->first();
             $allowed_access = (object) planAccess($user);
             $has_daily_limit = $this->customerService->canSpendCredits($user, $allowed_access, ServiceType::EMAIL->value);
@@ -405,6 +422,11 @@ class EmailService
                                 if(array_key_exists('campaign_id', $data) && array_key_exists('uid', $value)) {
 
                                     $unsubscribeLink = $this->generateUnsubscribeLink($data['campaign_id'], $value['uid']);
+                                    $value['unsubscribe_link'] = $unsubscribeLink;
+                                } elseif (array_key_exists('include_unsubscribe', $data) && $data['include_unsubscribe'] && array_key_exists('contact', $value) && $user_uid) {
+                                    $email = $value['contact'];
+                                    $expectedHash = hash('sha256', $user_uid . $email . env('APP_KEY'));
+                                    $unsubscribeLink = route('unsubscribe.general', ['user_uid' => $user_uid, 'email' => $email, 'hash' => $expectedHash]);
                                     $value['unsubscribe_link'] = $unsubscribeLink;
                                 }
                                 $data['contact_id'] = array_key_exists('id', $value) ? $value['id'] : null;
@@ -448,6 +470,11 @@ class EmailService
                     if(array_key_exists('campaign_id', $data) && array_key_exists('uid', $value)) {
 
                         $unsubscribeLink = $this->generateUnsubscribeLink($data['campaign_id'], $value['uid']);
+                        $value['unsubscribe_link'] = $unsubscribeLink;
+                    } elseif (array_key_exists('include_unsubscribe', $data) && $data['include_unsubscribe'] && array_key_exists('contact', $value) && $user_uid) {
+                        $email = $value['contact'];
+                        $expectedHash = hash('sha256', $user_uid . $email . env('APP_KEY'));
+                        $unsubscribeLink = route('unsubscribe.general', ['user_uid' => $user_uid, 'email' => $email, 'hash' => $expectedHash]);
                         $value['unsubscribe_link'] = $unsubscribeLink;
                     }
                     $data['contact_id'] = array_key_exists('id', $value) ? $value['id'] : null ;
@@ -595,11 +622,18 @@ class EmailService
                
                 $message = str_replace('{{' . $key . '}}', $val, $message);
             }
-            if($unsubscribeLink) {
-               
-                $message = str_replace('%7B%7Bunsubscribe_link%7D%7D', $unsubscribeLink, $message);
+        }
+        
+        if($unsubscribeLink) {
+            if (strpos($message['message_body'], '%7B%7Bunsubscribe_link%7D%7D') !== false || strpos($message['message_body'], '{{unsubscribe_link}}') !== false) {
+                $message = str_replace(['%7B%7Bunsubscribe_link%7D%7D', '{{unsubscribe_link}}'], $unsubscribeLink, $message);
+            } else {
+                $unsubscribeText = translate('To stop receiving these emails, you can');
+                $unsubscribeAnchor = '<a href="' . $unsubscribeLink . '">' . translate('unsubscribe here') . '</a>.';
+                $message['message_body'] .= '<br><br><div style="font-size: 12px; color: #666; text-align: center; margin-top: 20px;">' . $unsubscribeText . ' ' . $unsubscribeAnchor . '</div>';
             }
         }
+        
         return $message;
     }
     /**
