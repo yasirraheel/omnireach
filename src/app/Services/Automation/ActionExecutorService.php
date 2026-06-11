@@ -54,6 +54,8 @@ class ActionExecutorService
             'add_tag' => $this->executeAddTag($config, $contact),
             'notify_admin' => $this->executeNotifyAdmin($config, $contact, $user, $execution),
             'call_webhook' => $this->executeCallWebhook($config, $contact, $execution),
+            'simulate_typing' => $this->executeSimulateTyping($config, $contact, $user),
+            'mark_as_read' => $this->executeMarkAsRead($config, $contact, $user, $execution),
             default => [
                 'success' => false,
                 'error' => "Unknown action type: {$actionType}",
@@ -225,6 +227,108 @@ class ActionExecutorService
             return [
                 'success' => true,
                 'data' => ['to' => $contact->whatsapp_contact, 'device' => $gateway->name],
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Simulate Typing action
+     */
+    protected function executeSimulateTyping(array $config, Contact $contact, ?User $user): array
+    {
+        $deviceId = $config['device_id'] ?? null;
+        
+        if (!$contact->whatsapp_contact) {
+            return [
+                'success' => false,
+                'error' => 'Contact has no WhatsApp number',
+            ];
+        }
+
+        $gateway = Gateway::where('id', $deviceId)
+            ->where('channel', ChannelTypeEnum::WHATSAPP->value)
+            ->where('status', Status::ACTIVE->value)
+            ->first();
+
+        if (!$gateway) {
+            return [
+                'success' => false,
+                'error' => 'WhatsApp device not found or inactive',
+            ];
+        }
+
+        try {
+            $response = Http::timeout(5)
+                ->withHeaders([
+                    'X-API-Key' => env('WP_API_KEY'),
+                    'Content-Type' => 'application/json',
+                ])
+                ->post(env('WP_SERVER_URL') . '/messages/presence', [
+                    'sessionId' => $gateway->name,
+                    'receiver' => $contact->whatsapp_contact,
+                    'presence' => 'composing'
+                ]);
+            
+            return [
+                'success' => $response->successful(),
+                'data' => ['to' => $contact->whatsapp_contact, 'device' => $gateway->name],
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Mark as Read action
+     */
+    protected function executeMarkAsRead(array $config, Contact $contact, ?User $user, WorkflowExecution $execution): array
+    {
+        $deviceId = $config['device_id'] ?? null;
+        $triggerData = $execution->getContextValue('trigger_data') ?? [];
+        $messageId = $triggerData['reply_data']['message_id'] ?? null;
+        
+        if (!$contact->whatsapp_contact || !$messageId) {
+            return [
+                'success' => false,
+                'error' => 'No WhatsApp number or message ID to mark as read',
+            ];
+        }
+
+        $gateway = Gateway::where('id', $deviceId)
+            ->where('channel', ChannelTypeEnum::WHATSAPP->value)
+            ->where('status', Status::ACTIVE->value)
+            ->first();
+
+        if (!$gateway) {
+            return [
+                'success' => false,
+                'error' => 'WhatsApp device not found or inactive',
+            ];
+        }
+
+        try {
+            $response = Http::timeout(5)
+                ->withHeaders([
+                    'X-API-Key' => env('WP_API_KEY'),
+                    'Content-Type' => 'application/json',
+                ])
+                ->post(env('WP_SERVER_URL') . '/messages/read', [
+                    'sessionId' => $gateway->name,
+                    'receiver' => $contact->whatsapp_contact,
+                    'messageId' => $messageId
+                ]);
+            
+            return [
+                'success' => $response->successful(),
+                'data' => ['to' => $contact->whatsapp_contact, 'message_id' => $messageId],
             ];
         } catch (\Exception $e) {
             return [

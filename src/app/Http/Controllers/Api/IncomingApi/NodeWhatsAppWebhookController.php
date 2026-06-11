@@ -186,6 +186,24 @@ class NodeWhatsAppWebhookController extends Controller
             // Update conversation timestamp
             $this->chatService->updateConversation($conversation);
 
+            // Trigger Automation Workflow
+            if ($message) {
+                try {
+                    $triggerService = app(\App\Services\Automation\TriggerHandlerService::class);
+                    $triggerService->handleContactReplied($contact, 'whatsapp', [
+                        'text' => $text,
+                        'message_id' => $messageId,
+                        'type' => $type,
+                        'session_id' => $sessionId,
+                        'gateway_id' => $gateway->id
+                    ]);
+                } catch (\Exception $e) {
+                    Log::error('Failed to trigger automation for WhatsApp reply', [
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => $message ? 'Message received and stored' : 'Duplicate message skipped',

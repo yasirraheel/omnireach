@@ -348,4 +348,54 @@ router.post(
   }
 );
 
+/**
+ * POST /messages/presence
+ * Send presence update (typing, paused)
+ */
+router.post(
+  '/presence',
+  [
+    body('sessionId').notEmpty().withMessage('Session ID is required'),
+    body('receiver').notEmpty().withMessage('Receiver is required'),
+    body('presence').notEmpty().withMessage('Presence is required'),
+  ],
+  validate,
+  async (req, res, next) => {
+    try {
+      const { sessionId, receiver, presence } = req.body;
+      const client = await MessageService.verifySession(sessionId);
+      await client.socket.sendPresenceUpdate(presence, receiver);
+      return successResponse(res, 200, 'Presence updated successfully');
+    } catch (error) {
+      logger.error(`Presence update failed: ${error.message}`);
+      return errorResponse(res, 500, error.message);
+    }
+  }
+);
+
+/**
+ * POST /messages/read
+ * Mark message as read
+ */
+router.post(
+  '/read',
+  [
+    body('sessionId').notEmpty().withMessage('Session ID is required'),
+    body('receiver').notEmpty().withMessage('Receiver is required'),
+    body('messageId').notEmpty().withMessage('Message ID is required'),
+  ],
+  validate,
+  async (req, res, next) => {
+    try {
+      const { sessionId, receiver, messageId } = req.body;
+      const client = await MessageService.verifySession(sessionId);
+      await client.socket.readMessages([{ remoteJid: receiver, id: messageId, fromMe: false }]);
+      return successResponse(res, 200, 'Message marked as read');
+    } catch (error) {
+      logger.error(`Mark read failed: ${error.message}`);
+      return errorResponse(res, 500, error.message);
+    }
+  }
+);
+
 export default router;

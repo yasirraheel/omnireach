@@ -29,11 +29,34 @@ class ConditionEvaluatorService
         return match ($conditionType) {
             'has_tag' => $this->evaluateHasTag($config, $contact),
             'field_equals' => $this->evaluateFieldEquals($config, $contact),
+            'message_equals' => $this->evaluateMessageEquals($config, $execution),
             'in_group' => $this->evaluateInGroup($config, $contact),
             'random_split' => $this->evaluateRandomSplit($config),
             'day_of_week' => $this->evaluateDayOfWeek($config),
             'time_between' => $this->evaluateTimeBetween($config),
             default => true,
+        };
+    }
+
+    /**
+     * Check if incoming message matches text
+     */
+    protected function evaluateMessageEquals(array $config, WorkflowExecution $execution): bool
+    {
+        $operator = $config['operator'] ?? 'equals';
+        $value = $config['value'] ?? null;
+
+        $triggerData = $execution->getContextValue('trigger_data') ?? [];
+        $messageText = $triggerData['reply_data']['text'] ?? '';
+
+        return match ($operator) {
+            'equals', '=' => strtolower(trim((string)$messageText)) === strtolower(trim((string)$value)),
+            'not_equals', '!=' => strtolower(trim((string)$messageText)) !== strtolower(trim((string)$value)),
+            'contains' => str_contains(strtolower((string)$messageText), strtolower((string)$value)),
+            'not_contains' => !str_contains(strtolower((string)$messageText), strtolower((string)$value)),
+            'starts_with' => str_starts_with(strtolower((string)$messageText), strtolower((string)$value)),
+            'ends_with' => str_ends_with(strtolower((string)$messageText), strtolower((string)$value)),
+            default => false,
         };
     }
 

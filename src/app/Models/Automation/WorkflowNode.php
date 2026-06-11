@@ -129,12 +129,32 @@ class WorkflowNode extends Model
             'category' => 'notification',
             'config_fields' => ['url', 'method', 'headers', 'body'],
         ],
+        'simulate_typing' => [
+            'label' => 'Simulate Typing',
+            'description' => 'Simulate human typing on WhatsApp',
+            'icon' => 'ri-keyboard-line',
+            'category' => 'messaging',
+            'config_fields' => ['device_id'],
+        ],
+        'mark_as_read' => [
+            'label' => 'Mark as Read',
+            'description' => 'Mark incoming WhatsApp message as read',
+            'icon' => 'ri-check-double-line',
+            'category' => 'messaging',
+            'config_fields' => ['device_id'],
+        ],
     ];
 
     /**
      * Condition types
      */
     public const CONDITION_TYPES = [
+        'message_equals' => [
+            'label' => 'Message Contains/Equals',
+            'description' => 'Check if incoming message matches text',
+            'icon' => 'ri-message-3-line',
+            'config_fields' => ['operator', 'value'],
+        ],
         'has_tag' => [
             'label' => 'Has Tag',
             'description' => 'Check if contact has a specific tag',
