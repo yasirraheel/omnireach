@@ -2047,13 +2047,31 @@
                 <div class="property-group">
                     <label class="property-label">Channel</label>
                     <small class="text-muted d-block mb-2">Filter trigger by channel type (or leave as "Any" to catch all replies)</small>
-                    <select class="form-select" onchange="updateNodeConfig(${node.id}, 'channel', this.value)">
+                    <select class="form-select" onchange="updateNodeConfig(${node.id}, 'channel', this.value); setTimeout(() => selectNode(${node.id}), 50)">
                         <option value="" ${!config.channel ? 'selected' : ''}>Any Channel</option>
                         <option value="whatsapp" ${config.channel === 'whatsapp' ? 'selected' : ''}>WhatsApp</option>
                         <option value="sms" ${config.channel === 'sms' ? 'selected' : ''}>SMS</option>
                         <option value="email" ${config.channel === 'email' ? 'selected' : ''}>Email</option>
                     </select>
                 </div>
+                ${config.channel === 'whatsapp' ? `
+                <div class="property-group">
+                    <label class="property-label">Specific WhatsApp Account <span style="font-weight:400;color:var(--text-muted);font-size:0.75rem">(optional)</span></label>
+                    <select class="form-select" onchange="updateNodeConfig(${node.id}, 'device_id', this.value)">
+                        <option value="">Any WhatsApp Account</option>
+                        ${resources.whatsappDevices.map(g => `<option value="${g.id}" ${config.device_id == g.id ? 'selected' : ''}>${g.name}</option>`).join('')}
+                    </select>
+                </div>
+                ` : ''}
+                ${config.channel === 'sms' ? `
+                <div class="property-group">
+                    <label class="property-label">Specific SMS Device <span style="font-weight:400;color:var(--text-muted);font-size:0.75rem">(optional)</span></label>
+                    <select class="form-select" onchange="updateNodeConfig(${node.id}, 'device_id', this.value)">
+                        <option value="">Any SMS Device</option>
+                        ${resources.smsGateways.map(g => `<option value="${g.id}" ${config.device_id == g.id ? 'selected' : ''}>${g.name}</option>`).join('')}
+                    </select>
+                </div>
+                ` : ''}
                 <div class="property-group">
                     <label class="property-label">Filter by Phone Number <span style="font-weight:400;color:var(--text-muted);font-size:0.75rem">(optional)</span></label>
                     <small class="text-muted d-block mb-2">Only trigger if the reply comes from this exact number (leave blank for any number)</small>

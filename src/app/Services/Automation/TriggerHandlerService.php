@@ -265,6 +265,15 @@ class TriggerHandlerService
                 }
             }
 
+            // 3. Filter by Device/Gateway if configured
+            $targetDevice = trim($triggerConfig['device_id'] ?? '');
+            if ($targetDevice !== '') {
+                $incomingDevice = $replyData['gateway_id'] ?? $replyData['device_id'] ?? null;
+                if ($incomingDevice != $targetDevice) {
+                    continue; // device doesn't match
+                }
+            }
+
             $execution = $this->executionService->startExecution($workflow, $contact, [
                 'trigger'    => 'contact_replied',
                 'channel'    => $channel,
