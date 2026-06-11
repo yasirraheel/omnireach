@@ -42,7 +42,7 @@ class WorkflowNode extends Model
 
         static::creating(function ($model) {
             if (empty($model->uid)) {
-                $model->uid = Str::uuid()->toString();
+                $model->uid = str_unique();
             }
         });
     }

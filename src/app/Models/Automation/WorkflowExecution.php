@@ -41,7 +41,7 @@ class WorkflowExecution extends Model
 
         static::creating(function ($model) {
             if (empty($model->uid)) {
-                $model->uid = Str::uuid()->toString();
+                $model->uid = str_unique();
             }
             if (empty($model->started_at)) {
                 $model->started_at = now();
