@@ -101,18 +101,27 @@ class ActionExecutorService
             ];
 
             // Queue the message through the existing system
-            \App\Models\DispatchLog::create([
-                'uid' => str_unique(),
+            $messageModel = \App\Models\Message::create([
                 'user_id' => $user?->id,
-                'contact_id' => $contact->id,
-                'gateway_id' => $gateway->id,
-                'channel' => ChannelTypeEnum::SMS->value,
-                'to' => $contact->sms_contact,
+                'type' => \App\Enums\System\ChannelTypeEnum::SMS->value,
                 'message' => $message,
-                'status' => 'pending',
-                'schedule_at' => now(),
-                'meta_data' => ['sender_id' => $senderId, 'source' => 'automation'],
+                'is_campaign' => false,
             ]);
+
+            $dispatchLog = \App\Models\DispatchLog::create([
+                'user_id' => $user?->id,
+                'message_id' => $messageModel->id,
+                'contact_id' => $contact->id,
+                'type' => \App\Enums\System\ChannelTypeEnum::SMS->value,
+                'gatewayable_id' => $gateway->id,
+                'gatewayable_type' => \App\Models\Gateway::class,
+                'status' => \App\Enums\System\CommunicationStatusEnum::PENDING->value,
+                'priority' => \App\Enums\System\PriorityEnum::HIGH->value,
+                'meta_data' => ['sender_id' => $senderId, 'source' => 'automation'],
+                'retry_count' => 0,
+            ]);
+
+            \App\Jobs\ProcessDispatchLogBatch::dispatchSync([$dispatchLog->id], \App\Enums\System\ChannelTypeEnum::SMS, 'regular', false);
 
             return [
                 'success' => true,
@@ -156,18 +165,28 @@ class ActionExecutorService
 
         try {
             // Queue the email through the existing system
-            \App\Models\DispatchLog::create([
-                'uid' => str_unique(),
+            $messageModel = \App\Models\Message::create([
                 'user_id' => $user?->id,
-                'contact_id' => $contact->id,
-                'gateway_id' => $gateway->id,
-                'channel' => ChannelTypeEnum::EMAIL->value,
-                'to' => $contact->email_contact,
-                'message' => $message,
-                'status' => 'pending',
-                'schedule_at' => now(),
-                'meta_data' => ['subject' => $subject, 'source' => 'automation'],
+                'type' => \App\Enums\System\ChannelTypeEnum::EMAIL->value,
+                'subject' => $subject,
+                'main_body' => buildDomDocument($message),
+                'is_campaign' => false,
             ]);
+
+            $dispatchLog = \App\Models\DispatchLog::create([
+                'user_id' => $user?->id,
+                'message_id' => $messageModel->id,
+                'contact_id' => $contact->id,
+                'type' => \App\Enums\System\ChannelTypeEnum::EMAIL->value,
+                'gatewayable_id' => $gateway->id,
+                'gatewayable_type' => \App\Models\Gateway::class,
+                'status' => \App\Enums\System\CommunicationStatusEnum::PENDING->value,
+                'priority' => \App\Enums\System\PriorityEnum::HIGH->value,
+                'meta_data' => ['source' => 'automation'],
+                'retry_count' => 0,
+            ]);
+
+            \App\Jobs\ProcessDispatchLogBatch::dispatchSync([$dispatchLog->id], \App\Enums\System\ChannelTypeEnum::EMAIL, 'regular', false);
 
             return [
                 'success' => true,
@@ -211,18 +230,28 @@ class ActionExecutorService
 
         try {
             // Queue the message through the existing system
-            \App\Models\DispatchLog::create([
-                'uid' => str_unique(),
+            $messageModel = \App\Models\Message::create([
                 'user_id' => $user?->id,
-                'contact_id' => $contact->id,
-                'gateway_id' => $gateway->id,
-                'channel' => ChannelTypeEnum::WHATSAPP->value,
-                'to' => $contact->whatsapp_contact,
+                'type' => \App\Enums\System\ChannelTypeEnum::WHATSAPP->value,
                 'message' => $message,
-                'status' => 'pending',
-                'schedule_at' => now(),
-                'meta_data' => ['media_url' => $mediaUrl, 'source' => 'automation'],
+                'file_info' => $mediaUrl ? ['attachments' => [['file_name' => basename($mediaUrl), 'file_path' => $mediaUrl, 'size' => 0, 'type' => '']]] : null,
+                'is_campaign' => false,
             ]);
+
+            $dispatchLog = \App\Models\DispatchLog::create([
+                'user_id' => $user?->id,
+                'message_id' => $messageModel->id,
+                'contact_id' => $contact->id,
+                'type' => \App\Enums\System\ChannelTypeEnum::WHATSAPP->value,
+                'gatewayable_id' => $gateway->id,
+                'gatewayable_type' => \App\Models\Gateway::class,
+                'status' => \App\Enums\System\CommunicationStatusEnum::PENDING->value,
+                'priority' => \App\Enums\System\PriorityEnum::HIGH->value,
+                'meta_data' => ['source' => 'automation'],
+                'retry_count' => 0,
+            ]);
+
+            \App\Jobs\ProcessDispatchLogBatch::dispatchSync([$dispatchLog->id], \App\Enums\System\ChannelTypeEnum::WHATSAPP, 'regular', false);
 
             return [
                 'success' => true,
