@@ -369,7 +369,8 @@ class ActionExecutorService
     }
 
     /**
-     * Combined WhatsApp Engagement: Mark as Read + Simulate Typing (with configurable delays)
+     * Combined WhatsApp Engagement: Mark as Read + Simulate Typing + Send Reply (with configurable delays)
+     * All steps run synchronously in one shot — no cron, no queue delay.
      */
     protected function executeWhatsappEngagement(array $config, Contact $contact, ?User $user, WorkflowExecution $execution): array
     {
@@ -378,6 +379,8 @@ class ActionExecutorService
         $markAsReadDelay    = max(0, (int)($config['mark_as_read_delay'] ?? 1));
         $simulateTyping     = (bool)($config['simulate_typing'] ?? true);
         $typingDelay        = max(0, (int)($config['typing_delay'] ?? 2));
+        $replyMessage       = $this->parseMessage(trim($config['reply_message'] ?? ''), $contact);
+        $mediaUrl           = trim($config['reply_media_url'] ?? '');
 
         if (!$contact->whatsapp_contact) {
             return ['success' => false, 'error' => 'Contact has no WhatsApp number'];
@@ -395,7 +398,7 @@ class ActionExecutorService
         $results = [];
 
         try {
-            // Step 1: Mark as Read (after delay)
+            // ─── Step 1: Mark as Read ───────────────────────────────────────────
             if ($markAsRead) {
                 if ($markAsReadDelay > 0) {
                     sleep($markAsReadDelay);
@@ -417,12 +420,12 @@ class ActionExecutorService
                         ]);
                     $results['mark_as_read'] = $readResp->successful();
                 } else {
-                    $results['mark_as_read'] = false;
+                    $results['mark_as_read']      = false;
                     $results['mark_as_read_note'] = 'No message ID in trigger data';
                 }
             }
 
-            // Step 2: Simulate Typing (starts after mark-as-read timer finishes + typing delay)
+            // ─── Step 2: Simulate Typing ────────────────────────────────────────
             if ($simulateTyping) {
                 if ($typingDelay > 0) {
                     sleep($typingDelay);
@@ -439,6 +442,56 @@ class ActionExecutorService
                         'presence'  => 'composing',
                     ]);
                 $results['simulate_typing'] = $typingResp->successful();
+            }
+
+            // ─── Step 3: Send Reply (direct, no queue) ─────────────────────────
+            if (!empty($replyMessage)) {
+                $messagePayload = ['text' => $replyMessage];
+
+                // Build final payload
+                $sendPayload = [
+                    'sessionId' => $gateway->name,
+                    'receiver'  => $contact->whatsapp_contact,
+                    'message'   => $messagePayload,
+                    'delay'     => 0,
+                ];
+
+                // Attach media if provided
+                if (!empty($mediaUrl)) {
+                    $ext = strtolower(pathinfo(parse_url($mediaUrl, PHP_URL_PATH), PATHINFO_EXTENSION));
+                    $imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+                    $videoExts = ['mp4', 'mov', 'avi', 'mkv'];
+                    $audioExts = ['mp3', 'ogg', 'wav', 'aac', 'm4a'];
+
+                    if (in_array($ext, $imageExts)) {
+                        $sendPayload['message'] = ['image' => ['url' => $mediaUrl], 'caption' => $replyMessage];
+                    } elseif (in_array($ext, $videoExts)) {
+                        $sendPayload['message'] = ['video' => ['url' => $mediaUrl], 'caption' => $replyMessage];
+                    } elseif (in_array($ext, $audioExts)) {
+                        $sendPayload['message'] = ['audio' => ['url' => $mediaUrl], 'caption' => $replyMessage];
+                    } else {
+                        // Treat as document
+                        $sendPayload['message'] = [
+                            'document' => ['url' => $mediaUrl],
+                            'caption'  => $replyMessage,
+                            'fileName' => basename($mediaUrl),
+                        ];
+                    }
+                }
+
+                $sendResp = Http::timeout(15)
+                    ->withHeaders([
+                        'X-API-Key'    => env('WP_API_KEY'),
+                        'Content-Type' => 'application/json',
+                    ])
+                    ->post(env('WP_SERVER_URL') . '/messages/send', $sendPayload);
+
+                $results['reply_sent']    = $sendResp->successful();
+                $results['reply_message'] = $replyMessage;
+
+                if (!$sendResp->successful()) {
+                    $results['reply_error'] = $sendResp->body();
+                }
             }
 
             return [
