@@ -137,32 +137,46 @@ class WorkflowExecutionService
      */
     public function processCurrentNode(WorkflowExecution $execution): bool
     {
-        if (!$execution->canContinue()) {
-            return false;
+        $executionCount = 0;
+        $maxNodesPerRun = 50; // Prevent infinite loops
+        $lastResult = false;
+
+        // Loop to execute multiple nodes instantly if they don't require waiting
+        while ($execution->canContinue() && $execution->current_node_id && $executionCount < $maxNodesPerRun) {
+            $node = $execution->currentNode;
+            if (!$node) {
+                $execution->markAsCompleted();
+                return true;
+            }
+
+            $execution->markAsRunning($node->id);
+
+            try {
+                $lastResult = $this->executeNode($execution, $node);
+                
+                // If it returned false, or the status changed to waiting/completed, break the loop
+                if (!$lastResult || !$execution->isRunning()) {
+                    return $lastResult;
+                }
+                
+                // Refresh execution to load the new current_node_id and relation
+                $execution->refresh();
+                $executionCount++;
+                
+            } catch (\Exception $e) {
+                Log::error("Node execution failed", [
+                    'execution_id' => $execution->id,
+                    'node_id' => $node->id,
+                    'error' => $e->getMessage(),
+                ]);
+
+                $execution->logAction($node->id, $node->action_type ?? $node->type, 'failed', [], $e->getMessage());
+                $execution->markAsFailed($e->getMessage());
+                return false;
+            }
         }
 
-        $node = $execution->currentNode;
-        if (!$node) {
-            $execution->markAsCompleted();
-            return true;
-        }
-
-        $execution->markAsRunning($node->id);
-
-        try {
-            $result = $this->executeNode($execution, $node);
-            return $result;
-        } catch (\Exception $e) {
-            Log::error("Node execution failed", [
-                'execution_id' => $execution->id,
-                'node_id' => $node->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            $execution->logAction($node->id, $node->action_type ?? $node->type, 'failed', [], $e->getMessage());
-            $execution->markAsFailed($e->getMessage());
-            return false;
-        }
+        return $lastResult;
     }
 
     /**
