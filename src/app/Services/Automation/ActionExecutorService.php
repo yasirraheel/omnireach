@@ -379,8 +379,24 @@ class ActionExecutorService
         $markAsReadDelay    = max(0, (int)($config['mark_as_read_delay'] ?? 1));
         $simulateTyping     = (bool)($config['simulate_typing'] ?? true);
         $typingDelay        = max(0, (int)($config['typing_delay'] ?? 2));
-        $replyMessage       = $this->parseMessage(trim($config['reply_message'] ?? ''), $contact);
-        $mediaUrl           = trim($config['reply_media_url'] ?? '');
+        $conditions         = $config['conditions'] ?? [];
+        $defaultReply       = $this->parseMessage(trim($config['reply_message'] ?? ''), $contact);
+        $defaultMediaUrl    = trim($config['reply_media_url'] ?? '');
+
+        // Resolve which reply to send: match conditions first, then default
+        $triggerData        = $execution->getContextValue('trigger_data') ?? [];
+        $receivedText       = strtolower(trim($triggerData['reply_data']['text'] ?? ''));
+        $replyMessage       = $defaultReply;
+        $mediaUrl           = $defaultMediaUrl;
+
+        foreach ($conditions as $cond) {
+            $keyword = strtolower(trim($cond['contains'] ?? ''));
+            if ($keyword !== '' && str_contains($receivedText, $keyword)) {
+                $replyMessage = $this->parseMessage(trim($cond['reply'] ?? ''), $contact);
+                $mediaUrl     = trim($cond['media_url'] ?? '');
+                break;
+            }
+        }
 
         if (!$contact->whatsapp_contact) {
             return ['success' => false, 'error' => 'Contact has no WhatsApp number'];
@@ -404,7 +420,6 @@ class ActionExecutorService
                     sleep($markAsReadDelay);
                 }
 
-                $triggerData = $execution->getContextValue('trigger_data') ?? [];
                 $messageId   = $triggerData['reply_data']['message_id'] ?? null;
 
                 if ($messageId) {

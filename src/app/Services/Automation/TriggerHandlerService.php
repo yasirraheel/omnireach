@@ -233,15 +233,18 @@ class TriggerHandlerService
     {
         $results = [
             'workflows_triggered' => 0,
-            'contacts_enrolled' => 0,
+            'contacts_enrolled'   => 0,
         ];
 
-        // Find workflows with 'contact_replied' trigger
+        // Find workflows with 'contact_replied' trigger matching the channel
         $workflows = AutomationWorkflow::active()
             ->where('trigger_type', 'contact_replied')
             ->where(function ($q) use ($channel) {
-                $q->whereJsonContains('trigger_config->channel', $channel)
-                  ->orWhereNull('trigger_config->channel'); // Any channel
+                // Match exact channel string or no channel set (Any)
+                $q->where('trigger_config->channel', $channel)
+                  ->orWhere('trigger_config->channel', '')
+                  ->orWhereNull('trigger_config->channel')
+                  ->orWhereJsonDoesntContainKey('trigger_config->channel');
             })
             ->get();
 
@@ -250,9 +253,21 @@ class TriggerHandlerService
                 continue;
             }
 
+            // Filter by phone number if configured
+            $triggerConfig = $workflow->trigger_config ?? [];
+            $filterNumber  = trim($triggerConfig['filter_number'] ?? '');
+            if ($filterNumber !== '') {
+                // Normalize both to digits only for comparison
+                $filterDigits  = preg_replace('/\D/', '', $filterNumber);
+                $contactDigits = preg_replace('/\D/', '', $contact->whatsapp_contact ?? $contact->phone_contact ?? '');
+                if ($filterDigits !== '' && !str_ends_with($contactDigits, $filterDigits) && !str_ends_with($filterDigits, $contactDigits)) {
+                    continue; // number doesn't match, skip
+                }
+            }
+
             $execution = $this->executionService->startExecution($workflow, $contact, [
-                'trigger' => 'contact_replied',
-                'channel' => $channel,
+                'trigger'    => 'contact_replied',
+                'channel'    => $channel,
                 'reply_data' => $replyData,
             ]);
 

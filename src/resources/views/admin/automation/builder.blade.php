@@ -1890,30 +1890,42 @@
                 </div>
 
                 <div class="property-group" style="border:1px solid var(--border-color,#e9ecef);border-radius:8px;padding:12px;background:rgba(139,92,246,0.04);margin-top:8px">
-                    <label class="property-label mb-2"><i class="ri-send-plane-line me-1 text-purple" style="color:#8b5cf6"></i>Reply Message <span style="font-weight:400;color:var(--text-muted);font-size:0.75rem">(optional — sent instantly after typing)</span></label>
-                    <textarea class="form-control" rows="4"
-                              placeholder="Hi @{{first_name}}, thanks for your message!&#10;&#10;Leave blank to skip sending a reply."
-                              onchange="updateNodeConfig(${node.id}, 'reply_message', this.value)"
-                              style="font-family:monospace;font-size:0.85rem">${(config.reply_message || '').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
-                    <small class="text-muted mt-1 d-block">
-                        Variables: <code>@{{first_name}}</code> <code>@{{last_name}}</code> <code>@{{phone}}</code> <code>@{{whatsapp}}</code> <code>@{{email}}</code>
-                    </small>
-                    <div class="mt-2">
-                        <label class="property-label" style="font-size:0.78rem">Media URL <span style="font-weight:400;color:var(--text-muted)">(optional — image, video, audio or document)</span></label>
-                        <input type="url" class="form-control form-control-sm" value="${config.reply_media_url || ''}"
-                               placeholder="https://example.com/image.jpg"
-                               onchange="updateNodeConfig(${node.id}, 'reply_media_url', this.value)">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <label class="property-label mb-0"><i class="ri-git-branch-line me-1" style="color:#8b5cf6"></i>Smart Conditions <span style="font-weight:400;color:var(--text-muted);font-size:0.75rem">(If msg contains → reply)</span></label>
+                        <button type="button" class="btn btn-sm" style="background:rgba(139,92,246,0.15);color:#8b5cf6;border:1px solid rgba(139,92,246,0.3);font-size:0.75rem;padding:3px 10px"
+                                onclick="addEngagementCondition(${node.id})">
+                            <i class="ri-add-line"></i> Add Condition
+                        </button>
                     </div>
+                    <div id="conditions-wrap-${node.id}">
+                        <!-- conditions rendered by JS -->
+                    </div>
+                    <div class="mt-3" style="border-top:1px dashed var(--border-color,#e9ecef);padding-top:10px">
+                        <label class="property-label" style="font-size:0.8rem;color:var(--text-muted)"><i class="ri-reply-line me-1"></i>Default Reply <span style="font-weight:400">(if no condition matches)</span></label>
+                        <textarea class="form-control" rows="3"
+                                  placeholder="Hi, thanks for your message!"
+                                  onchange="updateNodeConfig(${node.id}, 'reply_message', this.value)"
+                                  style="font-family:monospace;font-size:0.85rem">${(config.reply_message || '').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
+                        <div class="mt-2">
+                            <label class="property-label" style="font-size:0.78rem">Default Media URL <span style="font-weight:400;color:var(--text-muted)">(optional)</span></label>
+                            <input type="url" class="form-control form-control-sm" value="${config.reply_media_url || ''}"
+                                   placeholder="https://example.com/image.jpg"
+                                   onchange="updateNodeConfig(${node.id}, 'reply_media_url', this.value)">
+                        </div>
+                    </div>
+                    <small class="text-muted mt-2 d-block">
+                        Variables: <code>@{{first_name}}</code> <code>@{{last_name}}</code> <code>@{{phone}}</code> <code>@{{whatsapp}}</code>
+                    </small>
                 </div>
 
                 <div class="mt-2 p-2" style="background:rgba(16,185,129,0.06);border-radius:6px;border-left:3px solid #10b981">
                     <small style="color:#059669;font-size:0.78rem">
                         <i class="ri-information-line me-1"></i>
-                        <strong>Flow:</strong> Receive → Mark Read (${marDelay}s) → Typing (${typDelay}s) → Send Reply — all in one shot, no cron delay.
+                        <strong>Flow:</strong> Receive → Mark Read (${marDelay}s) → Typing (${typDelay}s) → Match condition → Send Reply — all in one shot.
                     </small>
                 </div>
             `;
-            // Wire up toggle visibility after insertion
+            // Wire up toggles + render conditions
             setTimeout(() => {
                 const marToggle = document.getElementById('mar-toggle-' + node.id);
                 const typToggle = document.getElementById('typ-toggle-' + node.id);
@@ -1927,6 +1939,7 @@
                         document.getElementById('typ-delay-wrap-' + node.id).style.display = this.checked ? '' : 'none';
                     });
                 }
+                renderEngagementConditions(node.id);
             }, 0);
         }
 
@@ -2042,6 +2055,13 @@
                         <option value="email" ${config.channel === 'email' ? 'selected' : ''}>Email</option>
                     </select>
                 </div>
+                <div class="property-group">
+                    <label class="property-label">Filter by Phone Number <span style="font-weight:400;color:var(--text-muted);font-size:0.75rem">(optional)</span></label>
+                    <small class="text-muted d-block mb-2">Only trigger if the reply comes from this exact number (leave blank for any number)</small>
+                    <input type="text" class="form-control" value="${config.filter_number || ''}"
+                           placeholder="e.g. 923001234567"
+                           onchange="updateNodeConfig(${node.id}, 'filter_number', this.value.trim())">
+                </div>
             `;
         }
 
@@ -2056,6 +2076,68 @@
             const titleEl = document.querySelector(`#node-${nodeId} .node-title`);
             if (titleEl) titleEl.textContent = label;
         }
+    }
+
+    // ─── WhatsApp Engagement Condition Helpers ───────────────────────────────────
+
+    function renderEngagementConditions(nodeId) {
+        const node = workflowState.nodes.find(n => n.id === nodeId);
+        if (!node) return;
+        const wrap = document.getElementById('conditions-wrap-' + nodeId);
+        if (!wrap) return;
+
+        const conditions = node.config.conditions || [];
+        wrap.innerHTML = '';
+
+        if (conditions.length === 0) {
+            wrap.innerHTML = '<p class="text-muted mb-0" style="font-size:0.8rem;font-style:italic">No conditions — default reply will always be sent.</p>';
+            return;
+        }
+
+        conditions.forEach((cond, idx) => {
+            const div = document.createElement('div');
+            div.style.cssText = 'border:1px solid rgba(139,92,246,0.25);border-radius:8px;padding:10px;margin-bottom:8px;background:#fff;position:relative';
+            div.innerHTML = `
+                <button type="button" onclick="removeEngagementCondition(${nodeId}, ${idx})"
+                        style="position:absolute;top:6px;right:8px;background:none;border:none;color:#ef4444;cursor:pointer;font-size:1rem;line-height:1;padding:0">×</button>
+                <div style="font-size:0.72rem;font-weight:600;color:#8b5cf6;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.04em">Condition ${idx + 1}</div>
+                <label style="font-size:0.78rem;color:var(--text-muted);margin-bottom:3px;display:block">If received message contains:</label>
+                <input type="text" class="form-control form-control-sm mb-2" value="${(cond.contains || '').replace(/"/g,'&quot;')}"
+                       placeholder="e.g. hello, price, info"
+                       onchange="updateEngagementCondition(${nodeId}, ${idx}, 'contains', this.value)">
+                <label style="font-size:0.78rem;color:var(--text-muted);margin-bottom:3px;display:block">Then reply with:</label>
+                <textarea class="form-control form-control-sm mb-1" rows="2"
+                          placeholder="Your reply message..."
+                          onchange="updateEngagementCondition(${nodeId}, ${idx}, 'reply', this.value)"
+                          style="font-family:monospace;font-size:0.82rem">${(cond.reply || '').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
+                <label style="font-size:0.78rem;color:var(--text-muted);margin-bottom:3px;display:block">Media URL <span style="font-weight:400">(optional)</span></label>
+                <input type="url" class="form-control form-control-sm" value="${(cond.media_url || '').replace(/"/g,'&quot;')}"
+                       placeholder="https://example.com/image.jpg"
+                       onchange="updateEngagementCondition(${nodeId}, ${idx}, 'media_url', this.value)">
+            `;
+            wrap.appendChild(div);
+        });
+    }
+
+    function addEngagementCondition(nodeId) {
+        const node = workflowState.nodes.find(n => n.id === nodeId);
+        if (!node) return;
+        if (!node.config.conditions) node.config.conditions = [];
+        node.config.conditions.push({ contains: '', reply: '', media_url: '' });
+        renderEngagementConditions(nodeId);
+    }
+
+    function removeEngagementCondition(nodeId, idx) {
+        const node = workflowState.nodes.find(n => n.id === nodeId);
+        if (!node || !node.config.conditions) return;
+        node.config.conditions.splice(idx, 1);
+        renderEngagementConditions(nodeId);
+    }
+
+    function updateEngagementCondition(nodeId, idx, field, value) {
+        const node = workflowState.nodes.find(n => n.id === nodeId);
+        if (!node || !node.config.conditions || !node.config.conditions[idx]) return;
+        node.config.conditions[idx][field] = value;
     }
 
     function updateNodeConfig(nodeId, key, value) {
@@ -2536,11 +2618,18 @@
 
                 // Load nodes
                 data.data.nodes.forEach(n => {
+                    // For trigger nodes, merge workflow trigger_config into node config
+                    // so settings like channel are preserved when editing
+                    let nodeConfig = n.config || {};
+                    if (n.type === 'trigger' && data.data.trigger_config) {
+                        nodeConfig = Object.assign({}, data.data.trigger_config, nodeConfig);
+                    }
+
                     const node = {
                         id: idMap[n.id],
                         type: n.type,
                         action_type: n.action_type,
-                        config: n.config || {},
+                        config: nodeConfig,
                         label: n.label || getNodeLabel(n.type, n.action_type),
                         position_x: n.position_x || 100,
                         position_y: n.position_y || 100,
