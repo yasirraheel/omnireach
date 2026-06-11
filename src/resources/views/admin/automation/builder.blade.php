@@ -2041,6 +2041,88 @@
                 </div>
             `;
         }
+        
+        if (node.action_type === 'schedule') {
+            const timezones = (typeof Intl !== 'undefined' && Intl.supportedValuesOf) ? Intl.supportedValuesOf('timeZone') : ['UTC', 'Asia/Karachi', 'America/New_York', 'Europe/London'];
+            const tzOptions = timezones.map(tz => `<option value="${tz}" ${config.timezone === tz ? 'selected' : ''}>${tz}</option>`).join('');
+            
+            const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+            const selectedDays = config.days || [];
+            
+            let html = `
+                <div class="property-group">
+                    <label class="property-label">Target Group</label>
+                    <small class="text-muted d-block mb-2">Which contacts should be enrolled when this schedule runs?</small>
+                    <select class="form-select" onchange="updateNodeConfig(${node.id}, 'group_id', this.value)">
+                        <option value="">All Contacts</option>
+                        ${resources.groups.map(g => `<option value="${g.id}" ${config.group_id == g.id ? 'selected' : ''}>${g.name}</option>`).join('')}
+                    </select>
+                </div>
+                
+                <div class="property-group">
+                    <label class="property-label">Schedule Type</label>
+                    <select class="form-select" onchange="updateNodeConfig(${node.id}, 'schedule_type', this.value); setTimeout(() => selectNode(${node.id}), 50)">
+                        <option value="once" ${!config.schedule_type || config.schedule_type === 'once' ? 'selected' : ''}>Run Once</option>
+                        <option value="daily" ${config.schedule_type === 'daily' ? 'selected' : ''}>Daily</option>
+                        <option value="weekly" ${config.schedule_type === 'weekly' ? 'selected' : ''}>Weekly</option>
+                        <option value="monthly" ${config.schedule_type === 'monthly' ? 'selected' : ''}>Monthly</option>
+                    </select>
+                </div>
+                
+                <div class="property-group">
+                    <label class="property-label">Time of Day</label>
+                    <input type="time" class="form-control" value="${config.time || '09:00'}" onchange="updateNodeConfig(${node.id}, 'time', this.value)">
+                </div>
+                
+                <div class="property-group">
+                    <label class="property-label">Timezone</label>
+                    <select class="form-select" onchange="updateNodeConfig(${node.id}, 'timezone', this.value)">
+                        <option value="">Server Default</option>
+                        ${tzOptions}
+                    </select>
+                </div>
+            `;
+            
+            if (config.schedule_type === 'weekly') {
+                html += `<div class="property-group"><label class="property-label">Days of Week</label><div class="d-flex flex-column gap-2 mt-2">`;
+                daysOfWeek.forEach(day => {
+                    const isChecked = selectedDays.includes(day);
+                    html += `
+                        <label class="d-flex align-items-center gap-2" style="cursor:pointer; margin-bottom:0;">
+                            <input type="checkbox" value="${day}" ${isChecked ? 'checked' : ''} 
+                                onchange="
+                                    let days = [...(${JSON.stringify(selectedDays)})];
+                                    if(this.checked) days.push(this.value); else days = days.filter(d => d !== this.value);
+                                    updateNodeConfig(${node.id}, 'days', days);
+                                ">
+                            <span>${day}</span>
+                        </label>
+                    `;
+                });
+                html += `</div></div>`;
+            } else if (config.schedule_type === 'monthly') {
+                html += `
+                    <div class="property-group">
+                        <label class="property-label">Day of Month</label>
+                        <input type="number" class="form-control" min="1" max="31" value="${config.day_of_month || 1}" onchange="updateNodeConfig(${node.id}, 'day_of_month', parseInt(this.value))">
+                    </div>
+                `;
+            }
+            
+            return html;
+        }
+
+        if (node.action_type === 'manual') {
+            return `
+                <div class="alert alert-info border-0 d-flex align-items-start gap-2 mb-0" style="background-color: var(--primary-light);">
+                    <i class="ri-information-line fs-18 text-primary"></i>
+                    <div>
+                        <h6 class="mb-1 text-primary">Manual Trigger</h6>
+                        <p class="mb-0 text-muted" style="font-size: 0.85rem;">This workflow does not trigger automatically. You can trigger it for specific contacts by going to the Contacts list, selecting the target contacts, and choosing <strong>Run Automation</strong>.</p>
+                    </div>
+                </div>
+            `;
+        }
 
         if (node.action_type === 'contact_replied') {
             return `
