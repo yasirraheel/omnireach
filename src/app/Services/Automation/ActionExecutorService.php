@@ -45,9 +45,9 @@ class ActionExecutorService
         ]);
 
         return match ($actionType) {
-            'send_sms' => $this->executeSendSms($config, $contact, $user),
+            'send_sms' => $this->executeSendSms($config, $contact, $user, $execution),
             'send_email' => $this->executeSendEmail($config, $contact, $user),
-            'send_whatsapp' => $this->executeSendWhatsapp($config, $contact, $user),
+            'send_whatsapp' => $this->executeSendWhatsapp($config, $contact, $user, $execution),
             'add_to_group' => $this->executeAddToGroup($config, $contact, $user),
             'remove_from_group' => $this->executeRemoveFromGroup($config, $contact, $user),
             'update_contact' => $this->executeUpdateContact($config, $contact),
@@ -67,9 +67,10 @@ class ActionExecutorService
     /**
      * Send SMS action
      */
-    protected function executeSendSms(array $config, Contact $contact, ?User $user): array
+    protected function executeSendSms(array $config, Contact $contact, ?User $user, WorkflowExecution $execution): array
     {
-        $gatewayId = $config['gateway_id'] ?? null;
+        $triggerData = $execution->getContextValue('trigger_data') ?? [];
+        $gatewayId = $config['gateway_id'] ?? $triggerData['reply_data']['gateway_id'] ?? null;
         $message = $this->parseMessage($config['message'] ?? '', $contact);
         $senderId = $config['sender_id'] ?? null;
 
@@ -204,9 +205,10 @@ class ActionExecutorService
     /**
      * Send WhatsApp action
      */
-    protected function executeSendWhatsapp(array $config, Contact $contact, ?User $user): array
+    protected function executeSendWhatsapp(array $config, Contact $contact, ?User $user, WorkflowExecution $execution): array
     {
-        $deviceId = $config['device_id'] ?? null;
+        $triggerData = $execution->getContextValue('trigger_data') ?? [];
+        $deviceId = $config['device_id'] ?? $triggerData['reply_data']['gateway_id'] ?? null;
         $message = $this->parseMessage($config['message'] ?? '', $contact);
         $mediaUrl = $config['media_url'] ?? null;
 
@@ -321,8 +323,8 @@ class ActionExecutorService
      */
     protected function executeMarkAsRead(array $config, Contact $contact, ?User $user, WorkflowExecution $execution): array
     {
-        $deviceId = $config['device_id'] ?? null;
         $triggerData = $execution->getContextValue('trigger_data') ?? [];
+        $deviceId = $config['device_id'] ?? $triggerData['reply_data']['gateway_id'] ?? null;
         $messageId = $triggerData['reply_data']['message_id'] ?? null;
         
         if (!$contact->whatsapp_contact || !$messageId) {
@@ -374,7 +376,8 @@ class ActionExecutorService
      */
     protected function executeWhatsappEngagement(array $config, Contact $contact, ?User $user, WorkflowExecution $execution): array
     {
-        $deviceId           = $config['device_id'] ?? null;
+        $triggerData        = $execution->getContextValue('trigger_data') ?? [];
+        $deviceId           = $config['device_id'] ?? $triggerData['reply_data']['gateway_id'] ?? null;
         $markAsRead         = (bool)($config['mark_as_read'] ?? true);
         $markAsReadDelay    = max(0, (int)($config['mark_as_read_delay'] ?? 1));
         $simulateTyping     = (bool)($config['simulate_typing'] ?? true);
@@ -384,7 +387,6 @@ class ActionExecutorService
         $defaultMediaUrl    = trim($config['reply_media_url'] ?? '');
 
         // Resolve which reply to send: match conditions first, then default
-        $triggerData        = $execution->getContextValue('trigger_data') ?? [];
         $receivedText       = strtolower(trim($triggerData['reply_data']['text'] ?? ''));
         $replyMessage       = $defaultReply;
         $mediaUrl           = $defaultMediaUrl;
