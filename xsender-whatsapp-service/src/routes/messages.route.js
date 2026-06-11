@@ -2,6 +2,7 @@ import express from 'express';
 import { body } from 'express-validator';
 import validate from '../middleware/validator.middleware.js';
 import MessageService from '../services/MessageService.js';
+import { formatReceiver } from '../utils/phoneFormatter.js';
 import { successResponse, errorResponse } from '../utils/response.js';
 import logger from '../utils/logger.js';
 
@@ -364,7 +365,8 @@ router.post(
     try {
       const { sessionId, receiver, presence } = req.body;
       const client = await MessageService.verifySession(sessionId);
-      await client.socket.sendPresenceUpdate(presence, receiver);
+      const jid = formatReceiver(receiver);
+      await client.socket.sendPresenceUpdate(presence, jid);
       return successResponse(res, 200, 'Presence updated successfully');
     } catch (error) {
       logger.error(`Presence update failed: ${error.message}`);
@@ -389,7 +391,8 @@ router.post(
     try {
       const { sessionId, receiver, messageId } = req.body;
       const client = await MessageService.verifySession(sessionId);
-      await client.socket.readMessages([{ remoteJid: receiver, id: messageId, fromMe: false }]);
+      const jid = formatReceiver(receiver);
+      await client.socket.readMessages([{ remoteJid: jid, id: messageId, fromMe: false }]);
       return successResponse(res, 200, 'Message marked as read');
     } catch (error) {
       logger.error(`Mark read failed: ${error.message}`);
