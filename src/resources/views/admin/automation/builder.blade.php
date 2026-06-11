@@ -1892,11 +1892,11 @@
                 <div class="property-group" style="border:1px solid var(--border-color,#e9ecef);border-radius:8px;padding:12px;background:rgba(139,92,246,0.04);margin-top:8px">
                     <label class="property-label mb-2"><i class="ri-send-plane-line me-1 text-purple" style="color:#8b5cf6"></i>Reply Message <span style="font-weight:400;color:var(--text-muted);font-size:0.75rem">(optional — sent instantly after typing)</span></label>
                     <textarea class="form-control" rows="4"
-                              placeholder="Hi {{first_name}}, thanks for your message!&#10;&#10;Leave blank to skip sending a reply."
+                              placeholder="Hi @{{first_name}}, thanks for your message!&#10;&#10;Leave blank to skip sending a reply."
                               onchange="updateNodeConfig(${node.id}, 'reply_message', this.value)"
                               style="font-family:monospace;font-size:0.85rem">${(config.reply_message || '').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
                     <small class="text-muted mt-1 d-block">
-                        Variables: <code>{{first_name}}</code> <code>{{last_name}}</code> <code>{{phone}}</code> <code>{{whatsapp}}</code> <code>{{email}}</code>
+                        Variables: <code>@{{first_name}}</code> <code>@{{last_name}}</code> <code>@{{phone}}</code> <code>@{{whatsapp}}</code> <code>@{{email}}</code>
                     </small>
                     <div class="mt-2">
                         <label class="property-label" style="font-size:0.78rem">Media URL <span style="font-weight:400;color:var(--text-muted)">(optional — image, video, audio or document)</span></label>
@@ -1912,7 +1912,7 @@
                         <strong>Flow:</strong> Receive → Mark Read (${marDelay}s) → Typing (${typDelay}s) → Send Reply — all in one shot, no cron delay.
                     </small>
                 </div>
-            \`;
+            `;
             // Wire up toggle visibility after insertion
             setTimeout(() => {
                 const marToggle = document.getElementById('mar-toggle-' + node.id);
