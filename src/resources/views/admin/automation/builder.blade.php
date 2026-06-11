@@ -1694,6 +1694,18 @@
             if (node.action_type === 'send_email' && config.subject) {
                 return `Subject: ${config.subject}`;
             }
+            if (node.action_type === 'send_whatsapp' && config.message) {
+                return `Message: "${config.message.substring(0, 30)}..."`;
+            }
+            if (node.action_type === 'whatsapp_engagement') {
+                const parts = [];
+                if (config.mark_as_read !== false) parts.push(`Read in ${config.mark_as_read_delay ?? 1}s`);
+                if (config.simulate_typing !== false) parts.push(`Type in ${config.typing_delay ?? 2}s`);
+                return parts.length ? parts.join(' → ') : 'Click to configure';
+            }
+        }
+        if (node.type === 'trigger' && node.action_type === 'contact_replied') {
+            return config.channel ? `Channel: ${config.channel.toUpperCase()}` : 'Any channel';
         }
         if (node.type === 'wait') {
             if (config.duration && config.unit) {
@@ -1830,6 +1842,67 @@
                            onchange="updateNodeConfig(${node.id}, 'tag', this.value)">
                 </div>
             `;
+        } else if (node.action_type === 'whatsapp_engagement') {
+            const marDelay = config.mark_as_read_delay ?? 1;
+            const typDelay = config.typing_delay ?? 2;
+            const doMar    = config.mark_as_read !== false;
+            const doTyp    = config.simulate_typing !== false;
+            html += `
+                <div class="property-group">
+                    <label class="property-label">WhatsApp Device</label>
+                    <select class="form-select" onchange="updateNodeConfig(${node.id}, 'device_id', this.value)">
+                        <option value="">Select Device</option>
+                        ${resources.whatsappDevices.map(g => `<option value="${g.id}" ${config.device_id == g.id ? 'selected' : ''}>${g.name}</option>`).join('')}
+                    </select>
+                </div>
+
+                <div class="property-group" style="border:1px solid var(--border-color,#e9ecef);border-radius:8px;padding:12px;background:rgba(16,185,129,0.04)">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <label class="property-label mb-0"><i class="ri-check-double-line me-1 text-success"></i>Mark as Read</label>
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" id="mar-toggle-${node.id}" ${doMar ? 'checked' : ''}
+                                   onchange="updateNodeConfig(${node.id}, 'mark_as_read', this.checked)">
+                        </div>
+                    </div>
+                    <div id="mar-delay-wrap-${node.id}" style="${doMar ? '' : 'display:none'}">
+                        <label class="property-label" style="font-size:0.78rem;color:var(--text-muted)">Delay before marking (seconds)</label>
+                        <input type="number" class="form-control form-control-sm" min="0" max="300" value="${marDelay}"
+                               onchange="updateNodeConfig(${node.id}, 'mark_as_read_delay', parseInt(this.value))">
+                        <small class="text-muted">Wait this many seconds before marking message as read</small>
+                    </div>
+                </div>
+
+                <div class="property-group" style="border:1px solid var(--border-color,#e9ecef);border-radius:8px;padding:12px;background:rgba(59,130,246,0.04);margin-top:8px">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <label class="property-label mb-0"><i class="ri-keyboard-line me-1 text-primary"></i>Simulate Typing</label>
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" id="typ-toggle-${node.id}" ${doTyp ? 'checked' : ''}
+                                   onchange="updateNodeConfig(${node.id}, 'simulate_typing', this.checked)">
+                        </div>
+                    </div>
+                    <div id="typ-delay-wrap-${node.id}" style="${doTyp ? '' : 'display:none'}">
+                        <label class="property-label" style="font-size:0.78rem;color:var(--text-muted)">Delay after mark-as-read (seconds)</label>
+                        <input type="number" class="form-control form-control-sm" min="0" max="300" value="${typDelay}"
+                               onchange="updateNodeConfig(${node.id}, 'typing_delay', parseInt(this.value))">
+                        <small class="text-muted">Starts counting after mark-as-read finishes</small>
+                    </div>
+                </div>
+            `;
+            // Wire up toggle visibility after insertion
+            setTimeout(() => {
+                const marToggle = document.getElementById('mar-toggle-' + node.id);
+                const typToggle = document.getElementById('typ-toggle-' + node.id);
+                if (marToggle) {
+                    marToggle.addEventListener('change', function() {
+                        document.getElementById('mar-delay-wrap-' + node.id).style.display = this.checked ? '' : 'none';
+                    });
+                }
+                if (typToggle) {
+                    typToggle.addEventListener('change', function() {
+                        document.getElementById('typ-delay-wrap-' + node.id).style.display = this.checked ? '' : 'none';
+                    });
+                }
+            }, 0);
         }
 
         return html;
@@ -1927,6 +2000,21 @@
                     <select class="form-select" onchange="updateNodeConfig(${node.id}, 'group_id', this.value)">
                         <option value="">Any Group</option>
                         ${resources.groups.map(g => `<option value="${g.id}" ${config.group_id == g.id ? 'selected' : ''}>${g.name}</option>`).join('')}
+                    </select>
+                </div>
+            `;
+        }
+
+        if (node.action_type === 'contact_replied') {
+            return `
+                <div class="property-group">
+                    <label class="property-label">Channel</label>
+                    <small class="text-muted d-block mb-2">Filter trigger by channel type (or leave as "Any" to catch all replies)</small>
+                    <select class="form-select" onchange="updateNodeConfig(${node.id}, 'channel', this.value)">
+                        <option value="" ${!config.channel ? 'selected' : ''}>Any Channel</option>
+                        <option value="whatsapp" ${config.channel === 'whatsapp' ? 'selected' : ''}>WhatsApp</option>
+                        <option value="sms" ${config.channel === 'sms' ? 'selected' : ''}>SMS</option>
+                        <option value="email" ${config.channel === 'email' ? 'selected' : ''}>Email</option>
                     </select>
                 </div>
             `;

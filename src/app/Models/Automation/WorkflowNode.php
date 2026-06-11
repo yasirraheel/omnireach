@@ -143,6 +143,13 @@ class WorkflowNode extends Model
             'category' => 'messaging',
             'config_fields' => ['device_id'],
         ],
+        'whatsapp_engagement' => [
+            'label' => 'WhatsApp Engagement',
+            'description' => 'Mark as read + simulate typing with timers',
+            'icon' => 'ri-checkbox-circle-line',
+            'category' => 'messaging',
+            'config_fields' => ['device_id', 'mark_as_read', 'mark_as_read_delay', 'simulate_typing', 'typing_delay'],
+        ],
     ];
 
     /**

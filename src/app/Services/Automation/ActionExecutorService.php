@@ -56,6 +56,7 @@ class ActionExecutorService
             'call_webhook' => $this->executeCallWebhook($config, $contact, $execution),
             'simulate_typing' => $this->executeSimulateTyping($config, $contact, $user),
             'mark_as_read' => $this->executeMarkAsRead($config, $contact, $user, $execution),
+            'whatsapp_engagement' => $this->executeWhatsappEngagement($config, $contact, $user, $execution),
             default => [
                 'success' => false,
                 'error' => "Unknown action type: {$actionType}",
@@ -364,6 +365,91 @@ class ActionExecutorService
                 'success' => false,
                 'error' => $e->getMessage(),
             ];
+        }
+    }
+
+    /**
+     * Combined WhatsApp Engagement: Mark as Read + Simulate Typing (with configurable delays)
+     */
+    protected function executeWhatsappEngagement(array $config, Contact $contact, ?User $user, WorkflowExecution $execution): array
+    {
+        $deviceId           = $config['device_id'] ?? null;
+        $markAsRead         = (bool)($config['mark_as_read'] ?? true);
+        $markAsReadDelay    = max(0, (int)($config['mark_as_read_delay'] ?? 1));
+        $simulateTyping     = (bool)($config['simulate_typing'] ?? true);
+        $typingDelay        = max(0, (int)($config['typing_delay'] ?? 2));
+
+        if (!$contact->whatsapp_contact) {
+            return ['success' => false, 'error' => 'Contact has no WhatsApp number'];
+        }
+
+        $gateway = Gateway::where('id', $deviceId)
+            ->where('channel', ChannelTypeEnum::WHATSAPP->value)
+            ->where('status', Status::ACTIVE->value)
+            ->first();
+
+        if (!$gateway) {
+            return ['success' => false, 'error' => 'WhatsApp device not found or inactive'];
+        }
+
+        $results = [];
+
+        try {
+            // Step 1: Mark as Read (after delay)
+            if ($markAsRead) {
+                if ($markAsReadDelay > 0) {
+                    sleep($markAsReadDelay);
+                }
+
+                $triggerData = $execution->getContextValue('trigger_data') ?? [];
+                $messageId   = $triggerData['reply_data']['message_id'] ?? null;
+
+                if ($messageId) {
+                    $readResp = Http::timeout(5)
+                        ->withHeaders([
+                            'X-API-Key'    => env('WP_API_KEY'),
+                            'Content-Type' => 'application/json',
+                        ])
+                        ->post(env('WP_SERVER_URL') . '/messages/read', [
+                            'sessionId' => $gateway->name,
+                            'receiver'  => $contact->whatsapp_contact,
+                            'messageId' => $messageId,
+                        ]);
+                    $results['mark_as_read'] = $readResp->successful();
+                } else {
+                    $results['mark_as_read'] = false;
+                    $results['mark_as_read_note'] = 'No message ID in trigger data';
+                }
+            }
+
+            // Step 2: Simulate Typing (starts after mark-as-read timer finishes + typing delay)
+            if ($simulateTyping) {
+                if ($typingDelay > 0) {
+                    sleep($typingDelay);
+                }
+
+                $typingResp = Http::timeout(5)
+                    ->withHeaders([
+                        'X-API-Key'    => env('WP_API_KEY'),
+                        'Content-Type' => 'application/json',
+                    ])
+                    ->post(env('WP_SERVER_URL') . '/messages/presence', [
+                        'sessionId' => $gateway->name,
+                        'receiver'  => $contact->whatsapp_contact,
+                        'presence'  => 'composing',
+                    ]);
+                $results['simulate_typing'] = $typingResp->successful();
+            }
+
+            return [
+                'success' => true,
+                'data'    => array_merge(
+                    ['to' => $contact->whatsapp_contact, 'device' => $gateway->name],
+                    $results
+                ),
+            ];
+        } catch (\Exception $e) {
+            return ['success' => false, 'error' => $e->getMessage()];
         }
     }
 
