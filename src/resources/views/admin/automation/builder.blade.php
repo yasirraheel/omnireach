@@ -1892,8 +1892,7 @@
                 <div class="property-group" style="border:1px solid var(--border-color,#e9ecef);border-radius:8px;padding:12px;background:rgba(139,92,246,0.04);margin-top:8px">
                     <div class="d-flex align-items-center justify-content-between mb-3">
                         <label class="property-label mb-0"><i class="ri-git-branch-line me-1" style="color:#8b5cf6"></i>Smart Conditions <span style="font-weight:400;color:var(--text-muted);font-size:0.75rem">(If msg contains → reply)</span></label>
-                        <button type="button" class="btn btn-sm" style="background:rgba(139,92,246,0.15);color:#8b5cf6;border:1px solid rgba(139,92,246,0.3);font-size:0.75rem;padding:3px 10px"
-                                onclick="addEngagementCondition(${node.id})">
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="addEngagementCondition(${node.id})">
                             <i class="ri-add-line"></i> Add Condition
                         </button>
                     </div>
@@ -2101,7 +2100,13 @@
                 <button type="button" onclick="removeEngagementCondition(${nodeId}, ${idx})"
                         style="position:absolute;top:6px;right:8px;background:none;border:none;color:#ef4444;cursor:pointer;font-size:1rem;line-height:1;padding:0">×</button>
                 <div style="font-size:0.72rem;font-weight:600;color:#8b5cf6;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.04em">Condition ${idx + 1}</div>
-                <label style="font-size:0.78rem;color:var(--text-muted);margin-bottom:3px;display:block">If received message contains:</label>
+                <div class="d-flex align-items-center mb-1">
+                    <label style="font-size:0.78rem;color:var(--text-muted);margin-bottom:0;margin-right:8px">If received message:</label>
+                    <select class="form-select form-select-sm" style="width: auto; padding: 2px 24px 2px 8px; font-size: 0.75rem; height: auto;" onchange="updateEngagementCondition(${nodeId}, ${idx}, 'match_type', this.value)">
+                        <option value="contains" ${cond.match_type !== 'exact' ? 'selected' : ''}>Contains</option>
+                        <option value="exact" ${cond.match_type === 'exact' ? 'selected' : ''}>Is Exact Match</option>
+                    </select>
+                </div>
                 <input type="text" class="form-control form-control-sm mb-2" value="${(cond.contains || '').replace(/"/g,'&quot;')}"
                        placeholder="e.g. hello, price, info"
                        onchange="updateEngagementCondition(${nodeId}, ${idx}, 'contains', this.value)">
@@ -2123,7 +2128,7 @@
         const node = workflowState.nodes.find(n => n.id === nodeId);
         if (!node) return;
         if (!node.config.conditions) node.config.conditions = [];
-        node.config.conditions.push({ contains: '', reply: '', media_url: '' });
+        node.config.conditions.push({ match_type: 'contains', contains: '', reply: '', media_url: '' });
         renderEngagementConditions(nodeId);
     }
 

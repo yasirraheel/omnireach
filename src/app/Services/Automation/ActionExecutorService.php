@@ -391,7 +391,18 @@ class ActionExecutorService
 
         foreach ($conditions as $cond) {
             $keyword = strtolower(trim($cond['contains'] ?? ''));
-            if ($keyword !== '' && str_contains($receivedText, $keyword)) {
+            $matchType = $cond['match_type'] ?? 'contains';
+            
+            $isMatch = false;
+            if ($keyword !== '') {
+                if ($matchType === 'exact') {
+                    $isMatch = ($receivedText === $keyword);
+                } else {
+                    $isMatch = str_contains($receivedText, $keyword);
+                }
+            }
+
+            if ($isMatch) {
                 $replyMessage = $this->parseMessage(trim($cond['reply'] ?? ''), $contact);
                 $mediaUrl     = trim($cond['media_url'] ?? '');
                 break;
