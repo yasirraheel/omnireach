@@ -236,16 +236,9 @@ class TriggerHandlerService
             'contacts_enrolled'   => 0,
         ];
 
-        // Find workflows with 'contact_replied' trigger matching the channel
+        // Find workflows with 'contact_replied' trigger
         $workflows = AutomationWorkflow::active()
             ->where('trigger_type', 'contact_replied')
-            ->where(function ($q) use ($channel) {
-                // Match exact channel string or no channel set (Any)
-                $q->where('trigger_config->channel', $channel)
-                  ->orWhere('trigger_config->channel', '')
-                  ->orWhereNull('trigger_config->channel')
-                  ->orWhereJsonDoesntContainKey('trigger_config->channel');
-            })
             ->get();
 
         foreach ($workflows as $workflow) {
@@ -253,8 +246,15 @@ class TriggerHandlerService
                 continue;
             }
 
-            // Filter by phone number if configured
             $triggerConfig = $workflow->trigger_config ?? [];
+            
+            // 1. Filter by Channel
+            $workflowChannel = $triggerConfig['channel'] ?? '';
+            if ($workflowChannel !== '' && $workflowChannel !== $channel) {
+                continue; // channel doesn't match and isn't "Any"
+            }
+
+            // 2. Filter by phone number if configured
             $filterNumber  = trim($triggerConfig['filter_number'] ?? '');
             if ($filterNumber !== '') {
                 // Normalize both to digits only for comparison
