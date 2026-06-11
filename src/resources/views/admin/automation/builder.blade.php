@@ -1889,9 +1889,9 @@
                     </div>
                 </div>
 
-                <div class="property-group" style="border:1px solid var(--border-color,#e9ecef);border-radius:8px;padding:12px;background:rgba(139,92,246,0.04);margin-top:8px">
+                <div class="property-group" style="border:1px solid var(--border-color,#e9ecef);border-radius:8px;padding:12px;margin-top:8px;background:var(--bg-light,#f8f9fa)">
                     <div class="d-flex align-items-center justify-content-between mb-3">
-                        <label class="property-label mb-0"><i class="ri-git-branch-line me-1" style="color:#8b5cf6"></i>Smart Conditions <span style="font-weight:400;color:var(--text-muted);font-size:0.75rem">(If msg contains → reply)</span></label>
+                        <label class="property-label mb-0 text-primary"><i class="ri-git-branch-line me-1"></i>Smart Conditions <span style="font-weight:400;color:var(--text-muted);font-size:0.75rem">(If msg contains → reply)</span></label>
                         <button type="button" class="btn btn-outline-primary btn-sm" onclick="addEngagementCondition(${node.id})">
                             <i class="ri-add-line"></i> Add Condition
                         </button>
@@ -2095,11 +2095,11 @@
 
         conditions.forEach((cond, idx) => {
             const div = document.createElement('div');
-            div.style.cssText = 'border:1px solid rgba(139,92,246,0.25);border-radius:8px;padding:10px;margin-bottom:8px;background:#fff;position:relative';
+            div.style.cssText = 'border:1px solid var(--border-color,#e9ecef);border-radius:8px;padding:10px;margin-bottom:8px;background:#fff;position:relative';
             div.innerHTML = `
-                <button type="button" onclick="removeEngagementCondition(${nodeId}, ${idx})"
-                        style="position:absolute;top:6px;right:8px;background:none;border:none;color:#ef4444;cursor:pointer;font-size:1rem;line-height:1;padding:0">×</button>
-                <div style="font-size:0.72rem;font-weight:600;color:#8b5cf6;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.04em">Condition ${idx + 1}</div>
+                <button type="button" onclick="removeEngagementCondition(${nodeId}, ${idx})" class="text-danger"
+                        style="position:absolute;top:6px;right:8px;background:none;border:none;cursor:pointer;font-size:1rem;line-height:1;padding:0">×</button>
+                <div class="text-primary" style="font-size:0.72rem;font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.04em">Condition ${idx + 1}</div>
                 <div class="d-flex align-items-center mb-1">
                     <label style="font-size:0.78rem;color:var(--text-muted);margin-bottom:0;margin-right:8px">If received message:</label>
                     <select class="form-select form-select-sm" style="width: auto; padding: 2px 24px 2px 8px; font-size: 0.75rem; height: auto;" onchange="updateEngagementCondition(${nodeId}, ${idx}, 'match_type', this.value)">
