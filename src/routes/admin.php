@@ -176,6 +176,7 @@ Route::middleware([
                 Route::get('create/{group_id?}', 'create')->name('create.with_group');
                 Route::get('search', 'search')->name('search');
                 Route::post('status/update', 'updateStatus')->name('status.update');
+                Route::post('subscription/status/update', 'updateSubscriptionStatus')->name('subscription.status.update');
                 Route::post('bulk/action', 'bulk')->name('bulk');
                 Route::post('upload/file', 'uploadFile')->name('upload.file');
                 Route::post('delete/file', 'deleteFile')->name('delete.file');

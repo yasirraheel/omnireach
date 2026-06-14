@@ -839,6 +839,9 @@ class ActionExecutorService
      */
     protected function parseMessage(string $message, Contact $contact): string
     {
+        $unsubscribeHash = hash('sha256', $contact->uid . env('APP_KEY'));
+        $unsubscribeUrl = route('contact.unsubscribe', ['contact_uid' => $contact->uid, 'hash' => $unsubscribeHash]);
+
         $replacements = [
             '{{first_name}}' => $contact->first_name ?? '',
             '{{last_name}}' => $contact->last_name ?? '',
@@ -846,6 +849,7 @@ class ActionExecutorService
             '{{email}}' => $contact->email_contact ?? '',
             '{{phone}}' => $contact->sms_contact ?? '',
             '{{whatsapp}}' => $contact->whatsapp_contact ?? '',
+            '{{unsubscribe_url}}' => $unsubscribeUrl,
         ];
 
         // Add meta_data variables

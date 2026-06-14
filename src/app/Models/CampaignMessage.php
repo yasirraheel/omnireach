@@ -172,6 +172,9 @@ class CampaignMessage extends Model
         // Get all personalization variables
         $vars = $this->personalization_vars ?? [];
 
+        $unsubscribeHash = hash('sha256', $contact->uid . env('APP_KEY'));
+        $unsubscribeUrl = route('contact.unsubscribe', ['contact_uid' => $contact->uid, 'hash' => $unsubscribeHash]);
+
         // Add default variables
         $replacements = [
             '{{first_name}}' => $contact->first_name ?? '',
@@ -180,6 +183,7 @@ class CampaignMessage extends Model
             '{{email}}' => $contact->email_contact ?? '',
             '{{phone}}' => $contact->sms_contact ?? $contact->whatsapp_contact ?? '',
             '{{whatsapp}}' => $contact->whatsapp_contact ?? '',
+            '{{unsubscribe_url}}' => $unsubscribeUrl,
         ];
 
         // Add custom metadata variables

@@ -113,6 +113,7 @@
                   <th scope="col">{{ translate("SMS") }}</th>
                   <th scope="col">{{ translate("WhatsApp") }}</th>
                   <th scope="col">{{ translate("Email") }}</th>
+                  <th scope="col">{{ translate("Subscription") }}</th>
                   <th scope="col">{{ translate("Status") }}</th>
                   <th scope="col">{{ translate("Option") }}</th>
                 </tr>
@@ -160,6 +161,13 @@
                             </div>
                             @else
                                 <p>{{ $contact->email_contact ?? translate("N\A") }}</p>
+                            @endif
+                        </td>
+                        <td data-label="{{ translate('Subscription')}}">
+                            @if($contact->is_subscribed)
+                                <span class="badge badge--success badge-pill cursor-pointer" onclick="updateSubscriptionStatus({{ $contact->id }}, 0)">{{ translate("Subscribed") }}</span>
+                            @else
+                                <span class="badge badge--danger badge-pill cursor-pointer" onclick="updateSubscriptionStatus({{ $contact->id }}, 1)">{{ translate("Unsubscribed") }}</span>
                             @endif
                         </td>
                         <td data-label="{{ translate('Status')}}">
@@ -598,9 +606,35 @@
 
             modal.modal('show');
         });
-    })(jQuery);
+        })(jQuery);
 
+        function updateSubscriptionStatus(id, status) {
+            var url = "{{ route('user.subscription.status.update') }}";
+            var token = "{{ csrf_token() }}";
+            var data = {id: id, status: status, _token: token};
 
-</script>
+            $.ajax({
+                url: url,
+                method: "POST",
+                data: data,
+                success: function(response) {
+                    var res = JSON.parse(response);
+                    if (res.status) {
+                        notify('success', res.message);
+                        if (res.reload) {
+                            setTimeout(function() {
+                                location.reload();
+                            }, 1000);
+                        }
+                    } else {
+                        notify('error', res.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    notify('error', 'Something went wrong');
+                }
+            });
+        }
+    </script>
 @endpush
 

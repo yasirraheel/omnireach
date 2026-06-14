@@ -222,6 +222,9 @@
                                             <button type="button" class="i-btn btn--dark outline btn--sm insert-var" data-var="@{{phone}}" data-channel="{{ $channel }}">
                                                 <i class="ri-phone-line me-1"></i>@{{phone}}
                                             </button>
+                                            <button type="button" class="i-btn btn--dark outline btn--sm insert-var" data-var="@{{unsubscribe_url}}" data-channel="{{ $channel }}">
+                                                <i class="ri-link me-1"></i>@{{unsubscribe_url}}
+                                            </button>
                                         </div>
                                     </div>
                                 </div>

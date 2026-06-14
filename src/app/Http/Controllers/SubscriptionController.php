@@ -159,4 +159,25 @@ class SubscriptionController extends Controller
             'logo' => asset('images/unsubscribe-logo.png')
         ]);
     }
+
+    /**
+     * Handle contact unsubscribe via dynamic URL.
+     */
+    public function contactUnsubscribe(Request $request, $contact_uid, $hash, ThemeManager $themeManager)
+    {
+        $contact = Contact::where('uid', $contact_uid)->firstOrFail();
+        $expectedHash = hash('sha256', $contact->uid . env('APP_KEY'));
+
+        if (!hash_equals($expectedHash, $hash)) {
+            abort(403, 'Invalid unsubscribe link.');
+        }
+
+        $contact->unsubscribe();
+
+        return view($themeManager->view('sections.subscribe-success'), [
+            'title' => translate('Unsubscribed'),
+            'message' => translate('We\'re sad to see you go! You have been successfully unsubscribed from future messages.'),
+            'logo' => asset('images/unsubscribe-logo.png') // Or a sad face logo if we have one
+        ]);
+    }
 }

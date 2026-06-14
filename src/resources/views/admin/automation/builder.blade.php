@@ -1789,7 +1789,7 @@
                 <div class="property-group">
                     <label class="property-label">Message</label>
                     <textarea class="form-control" rows="4" onchange="updateNodeConfig(${node.id}, 'message', this.value)"
-                              placeholder="Use @{{first_name}}, @{{phone}} for personalization">${config.message || ''}</textarea>
+                              placeholder="Use @{{first_name}}, @{{phone}}, @{{unsubscribe_url}} for personalization">${config.message || ''}</textarea>
                 </div>
             `;
         } else if (node.action_type === 'send_email') {
@@ -1913,7 +1913,7 @@
                         </div>
                     </div>
                     <small class="text-muted mt-2 d-block">
-                        Variables: <code>@{{first_name}}</code> <code>@{{last_name}}</code> <code>@{{phone}}</code> <code>@{{whatsapp}}</code>
+                        Variables: <code>@{{first_name}}</code> <code>@{{last_name}}</code> <code>@{{phone}}</code> <code>@{{whatsapp}}</code> <code>@{{unsubscribe_url}}</code>
                     </small>
                 </div>
 

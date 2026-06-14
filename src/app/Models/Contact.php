@@ -29,12 +29,14 @@ class Contact extends Model
         'last_name',
         'first_name',
         'status',
-        'email_verification'
+        'email_verification',
+        'is_subscribed'
     ];
 
     protected $casts = [
         "meta_data"             => "object",
         "email_verification"    => EmailVerificationStatusEnum::class,
+        "is_subscribed"         => "boolean",
     ];
 
     protected static function booted()
@@ -232,5 +234,17 @@ class Contact extends Model
 
         return $dob->month === $targetDate->month
             && $dob->day === $targetDate->day;
+    }
+
+    /**
+     * Unsubscribe the contact
+     *
+     * @return void
+     */
+    public function unsubscribe()
+    {
+        $this->is_subscribed = false;
+        $this->status = Status::INACTIVE->value;
+        $this->save();
     }
 }

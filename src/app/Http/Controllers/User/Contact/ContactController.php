@@ -158,6 +158,47 @@ class ContactController extends Controller
     }
 
     /**
+     * updateSubscriptionStatus
+     *
+     * @param Request $request
+     * 
+     * @return string
+     */
+    public function updateSubscriptionStatus(Request $request): string {
+        
+        try {
+            $request->validate([
+                'id' => 'required|exists:contacts,id',
+                'status' => 'required|boolean'
+            ]);
+
+            $contact = Contact::where('id', $request->id)
+                ->where('user_id', auth()->id())
+                ->firstOrFail();
+            
+            if ($request->status) {
+                $contact->is_subscribed = true;
+                $contact->save();
+            } else {
+                $contact->unsubscribe();
+            }
+
+            return json_encode([
+                'status' => true,
+                'message' => translate('Subscription status updated successfully.'),
+                'reload' => true
+            ]);
+
+        } catch (Exception $e) {
+            
+            return response()->json([
+                'status'    => false,
+                'message'   => getEnvironmentMessage($e->getMessage()),
+            ], Response::HTTP_INTERNAL_SERVER_ERROR); 
+        }
+    }
+
+    /**
      * destroy
      *
      * @param Request $request

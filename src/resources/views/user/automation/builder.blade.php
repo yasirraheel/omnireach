@@ -1208,7 +1208,7 @@
                 <div class="property-group">
                     <label class="property-label">{{ translate('Message') }}</label>
                     <textarea class="form-control" rows="4" onchange="updateNodeConfig(${node.id}, 'message', this.value)"
-                              placeholder="Use {first_name}, {phone} for personalization">${config.message || ''}</textarea>
+                              placeholder="Use @{{first_name}}, @{{phone}}, @{{unsubscribe_url}} for personalization">${config.message || ''}</textarea>
                 </div>
             `;
         } else if (node.action_type === 'send_email') {

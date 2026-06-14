@@ -285,6 +285,7 @@ Route::middleware([
     Route::post('/subscribe', [SubscriptionController::class, 'subscribe'])->name('subscribe.post');
     Route::get('/subscribe/verify/{uid}/{hash}', [SubscriptionController::class, 'verifySubscription'])->name('subscribe.verify');
     Route::get('/unsubscribe/general/{user_uid}/{email}/{hash}', [SubscriptionController::class, 'unsubscribeGeneral'])->name('unsubscribe.general');
+    Route::get('/unsubscribe/contact/{contact_uid}/{hash}', [SubscriptionController::class, 'contactUnsubscribe'])->name('contact.unsubscribe');
     
     Route::get('/domain-unverified', [CoreController::class, 'domainNotVerified'])->name('domain.unverified')->withoutMiddleware(['domain.verified' , 'check.domain']);
     
