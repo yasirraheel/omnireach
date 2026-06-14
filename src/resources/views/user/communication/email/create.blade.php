@@ -358,7 +358,8 @@
                     <button class="i-btn btn--sm p-0 bg-transparent text-primary available-template" id="selectEmailTemplate" type="button">
                       <i class="ri-layout-fill fs-5"></i>{{ translate("Use Email Template") }}</button>
                   </div>
-                  <textarea class="form-control" name="message[main_body]" id="message" rows="5" placeholder="{{translate('Enter Email Content')}}  @php echo "\nIf Contact is being selected from a group then to mention First Name Use {{". 'first_name' ."}} \nTo initiate text spinner type {Hello|Hi|Hola} to you, {Mr.|Mrs.|Ms.} {Lucia|Jimmy|Arnold}"@endphp">{{ old('message.main_body') }}</textarea>
+                  <textarea class="form-control" name="message[main_body]" id="message" rows="5" placeholder="{{translate('Enter email content')}}"\nIf Contact is being selected from a group then to mention First Name Use {{". 'first_name' ."}} \nTo initiate text spinner type {Hello|Hi|Hola} to you, {Mr.|Mrs.|Ms.} {Lucia|Jimmy|Arnold}"@endphp">{{ old('message.main_body') }}</textarea>
+                  @include('partials.personalization_variables')
                   <div class="voice-icon">
                     <button type="button" class="icon-btn btn-sm primary-soft circle hover" id="text-to-speech-icon">
                       <i class="ri-mic-fill"></i>

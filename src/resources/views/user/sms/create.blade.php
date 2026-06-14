@@ -181,7 +181,7 @@
                                     <div class="form-item">
                                         <label class="form-label" for="message">{{ translate('Write Message')}} <sup class="text-danger">*</sup></label>
                                         <div class="speech-to-text" id="messageBox">
-                                            <textarea class="form-control message" name="message" id="message" placeholder="{{translate('Enter SMS Content')}}  @php echo "\nTo initiate text spinner type {Hello|Hi|Hola} to you, {Mr.|Mrs.|Ms.} {Lucia|Jimmy|Arnold}"@endphp" aria-describedby="text-to-speech-icon">{{session()->get('old_sms_message')}}</textarea>
+                                            <textarea class="form-control message" name="message" id="message" placeholder="{{translate('Enter SMS content')}}"\nTo initiate text spinner type {Hello|Hi|Hola} to you, {Mr.|Mrs.|Ms.} {Lucia|Jimmy|Arnold}"@endphp" aria-describedby="text-to-speech-icon">{{session()->get('old_sms_message')}}</textarea>
                                             <span class="voice-icon" id="text-to-speech-icon">
                                                 <i class='fa fa-microphone text-to-speech-toggle'></i>
                                             </span>

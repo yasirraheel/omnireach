@@ -241,6 +241,7 @@
                     <div class="ig-text-editor speech-to-text without-cloud-message d-none" id="messageBox">
                       <input type="text" name="without_cloud_api" hidden>
                       <textarea class="form-control" name="message[message_body]" id="message" rows="5">{{ old('message.message_body') }}</textarea>
+                  @include('partials.personalization_variables')
                       <div class="text-editor">
                         <ul class="editor-actions">
                           <li class="action-item">

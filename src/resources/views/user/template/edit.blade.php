@@ -93,6 +93,7 @@
                                         <div class="form-inner">
                                           <label for="user_email_template_body" class="form-label"> {{ translate("Mail Body") }} </label>
                                           <textarea class="form-control" name="template_data[mail_body]" id="user_email_template_body" rows="2" placeholder="{{ translate('Enter mail body') }}" aria-label="{{ translate('Enter mail body') }}">{{ $template->template_data["mail_body"] }}</textarea>
+                  @include('partials.personalization_variables', ['targetSelector' => '#user_email_template_body'])
                                         </div>
                                     </div>
                                 </div>
