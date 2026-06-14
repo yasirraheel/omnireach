@@ -49,8 +49,8 @@ class SubscriptionController extends Controller
     {
         $request->validate([
             'email' => 'required|email|max:255',
-            'user_uid' => 'required|exists:users,uid',
-            'group_uid' => 'nullable|exists:contact_groups,uid',
+            'user_uid' => 'required',
+            'group_uid' => 'nullable',
             'first_name' => 'nullable|string|max:90',
             'last_name' => 'nullable|string|max:90',
         ]);
@@ -81,42 +81,60 @@ class SubscriptionController extends Controller
         // Check if contact already exists for this user
         $contact = Contact::where('user_id', $user_id)->where('email_contact', $email)->first();
 
+        $needsVerification = true;
+
         if (!$contact) {
             $contact = new Contact();
             $contact->user_id = $user_id;
             $contact->email_contact = $email;
             $contact->uid = generateUid();
+        } else {
+            if ($contact->email_verification === 'verified' && $contact->status === 'active') {
+                $needsVerification = false;
+            }
         }
 
         $contact->first_name = $request->first_name;
         $contact->last_name = $request->last_name;
         $contact->group_id = $group_id;
-        $contact->status = 'inactive'; // Double opt-in requires them to be inactive initially
-        $contact->email_verification = 'unverified';
-        $contact->save();
 
-        // Generate verification hash
-        $hash = hash('sha256', $contact->uid . $contact->email_contact . env('APP_KEY'));
+        if ($needsVerification) {
+            $contact->status = 'inactive'; 
+            $contact->email_verification = 'unverified';
+            $contact->is_subscribed = 0;
+            $contact->save();
 
-        // We would normally send an email here using the user's default gateway.
-        // For now, we will dispatch an email with the verification link.
-        $verificationUrl = route('subscribe.verify', ['uid' => $contact->uid, 'hash' => $hash]);
+            // Generate verification hash
+            $hash = hash('sha256', $contact->uid . $contact->email_contact . env('APP_KEY'));
 
-        try {
-            // A basic standard mail to verify.
-            \Illuminate\Support\Facades\Mail::raw(
-                "Please click the following link to verify your subscription: \n\n" . $verificationUrl,
-                function ($message) use ($email) {
-                    $message->to($email)
-                        ->subject('Verify your subscription');
-                }
-            );
-        } catch (\Exception $e) {
-            // Log or handle mail failure
-            \Illuminate\Support\Facades\Log::error('Failed to send verification email: ' . $e->getMessage());
+            $verificationUrl = route('subscribe.verify', ['uid' => $contact->uid, 'hash' => $hash]);
+
+            try {
+                \Illuminate\Support\Facades\Mail::raw(
+                    "Please click the following link to verify your subscription: \n\n" . $verificationUrl,
+                    function ($message) use ($email) {
+                        $message->to($email)
+                            ->subject('Verify your subscription');
+                    }
+                );
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Failed to send verification email: ' . $e->getMessage());
+            }
+
+            return back()->with('success', translate('Please check your email to verify your subscription.'));
+        } else {
+            // Already verified, just update their subscription status and group
+            $contact->is_subscribed = 1;
+            $contact->save();
+
+            // Remove from suppressions if they were previously unsubscribed
+            DB::table('email_suppressions')
+                ->where('user_id', $contact->user_id)
+                ->where('email_address', $contact->email_contact)
+                ->delete();
+
+            return back()->with('success', translate('You have been successfully subscribed to the list.'));
         }
-
-        return back()->with('success', translate('Please check your email to verify your subscription.'));
     }
 
     /**
