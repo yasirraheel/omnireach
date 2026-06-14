@@ -123,17 +123,29 @@ class SubscriptionController extends Controller
 
                 if ($gateway) {
                     $sendMail = new \App\Http\Utility\SendMail();
-                    $mailBody = "
-                        <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; text-align: center; background-color: #f9f9f9; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);'>
-                            <h2 style='color: #333; margin-bottom: 20px;'>Verify Your Subscription</h2>
-                            <p style='color: #555; font-size: 16px; margin-bottom: 30px;'>Thank you for subscribing! Please click the button below to verify your email address and activate your subscription.</p>
-                            <a href='{$verificationUrl}' style='display: inline-block; padding: 14px 30px; background-color: #667eea; color: #fff; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;'>Verify Email Now</a>
-                            <p style='color: #999; font-size: 12px; margin-top: 40px;'>If you did not request this subscription, please ignore this email.</p>
-                            <hr style='border: none; border-top: 1px solid #eaeaea; margin: 20px 0;'>
-                            <p style='color: #777; font-size: 12px; word-break: break-all;'>Or copy and paste this link into your browser:<br>{$verificationUrl}</p>
-                        </div>
-                    ";
-                    $sendMail->send($gateway, $email, 'Verify Your Subscription', $mailBody);
+                    
+                    $template = \App\Models\Template::where('slug', \App\Enums\DefaultTemplateSlug::SUBSCRIPTION_VERIFY->value)->first();
+                    
+                    if ($template) {
+                        $mailCode = [
+                            'verificationUrl' => $verificationUrl
+                        ];
+                        // We pass the user as a fallback (contact is not a user, but mail handler expects model)
+                        $sendMail->MailNotification($gateway, $template, $contact, $mailCode);
+                    } else {
+                        // Fallback to basic HTML if template is missing
+                        $mailBody = "
+                            <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; text-align: center; background-color: #f9f9f9; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);'>
+                                <h2 style='color: #333; margin-bottom: 20px;'>Verify Your Subscription</h2>
+                                <p style='color: #555; font-size: 16px; margin-bottom: 30px;'>Thank you for subscribing! Please click the button below to verify your email address and activate your subscription.</p>
+                                <a href='{$verificationUrl}' style='display: inline-block; padding: 14px 30px; background-color: #667eea; color: #fff; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;'>Verify Email Now</a>
+                                <p style='color: #999; font-size: 12px; margin-top: 40px;'>If you did not request this subscription, please ignore this email.</p>
+                                <hr style='border: none; border-top: 1px solid #eaeaea; margin: 20px 0;'>
+                                <p style='color: #777; font-size: 12px; word-break: break-all;'>Or copy and paste this link into your browser:<br>{$verificationUrl}</p>
+                            </div>
+                        ";
+                        $sendMail->send($gateway, $email, 'Verify Your Subscription', $mailBody);
+                    }
                 } else {
                     \Illuminate\Support\Facades\Log::error('No default email gateway found to send verification email.');
                 }
