@@ -213,20 +213,21 @@ class ContactGroupController extends Controller
                     ->where('email_contact', '!=', '')
                     ->with('group:id,name')
                     ->orderBy('first_name')
-                    ->get(['id', 'group_id', 'first_name', 'last_name', 'email_contact'])
+                    ->get(['id', 'group_id', 'first_name', 'last_name', 'email_contact', 'is_subscribed'])
                     ->unique('email_contact')
                     ->values()
                     ->map(function (Contact $contact) {
                         $name = trim("{$contact->first_name} {$contact->last_name}");
+                        $unsubText = !$contact->is_subscribed ? ' ' . translate('(Unsubscribed)') : '';
 
                         return [
                             'id' => $contact->id,
                             'email' => $contact->email_contact,
                             'name' => $name,
                             'group' => $contact->group?->name,
-                            'label' => $name
+                            'label' => ($name
                                 ? "{$name} <{$contact->email_contact}>"
-                                : $contact->email_contact,
+                                : $contact->email_contact) . $unsubText,
                         ];
                     });
 
