@@ -1938,6 +1938,13 @@ use Illuminate\Support\Facades\Cache;
 							->mapWithKeys(function ($variable) use ($contact, $columns, $metaData) {
 								$trimmedVariable = trim($variable); 
 								$placeholder = "{{{$trimmedVariable}}}";
+								
+								if ($trimmedVariable === 'unsubscribe_url') {
+									$unsubscribeHash = hash('sha256', $contact->uid . env('APP_KEY'));
+									$unsubscribeUrl = route('contact.unsubscribe', ['contact_uid' => $contact->uid, 'hash' => $unsubscribeHash]);
+									return [$placeholder => $unsubscribeUrl];
+								}
+
 								if (in_array($trimmedVariable, $columns)) {
 									return [$placeholder => $contact->$trimmedVariable ?? ''];
 								}
