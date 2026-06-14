@@ -110,13 +110,24 @@ class SubscriptionController extends Controller
             $verificationUrl = route('subscribe.verify', ['uid' => $contact->uid, 'hash' => $hash]);
 
             try {
-                \Illuminate\Support\Facades\Mail::raw(
-                    "Please click the following link to verify your subscription: \n\n" . $verificationUrl,
-                    function ($message) use ($email) {
-                        $message->to($email)
-                            ->subject('Verify your subscription');
-                    }
-                );
+                $gateway = \App\Models\Gateway::where('is_default', 1)
+                    ->where('channel', \App\Enums\System\ChannelTypeEnum::EMAIL->value);
+                
+                if ($user_id) {
+                    $gateway = $gateway->where(function ($q) use ($user_id) {
+                        $q->where('user_id', $user_id)->orWhereNull('user_id');
+                    })->orderBy('user_id', 'desc')->first();
+                } else {
+                    $gateway = $gateway->whereNull('user_id')->first();
+                }
+
+                if ($gateway) {
+                    $sendMail = new \App\Http\Utility\SendMail();
+                    $mailBody = "Please click the following link to verify your subscription: \n\n" . $verificationUrl;
+                    $sendMail->send($gateway, $email, 'Verify your subscription', $mailBody);
+                } else {
+                    \Illuminate\Support\Facades\Log::error('No default email gateway found to send verification email.');
+                }
             } catch (\Exception $e) {
                 \Illuminate\Support\Facades\Log::error('Failed to send verification email: ' . $e->getMessage());
             }
