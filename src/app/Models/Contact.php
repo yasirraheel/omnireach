@@ -41,11 +41,27 @@ class Contact extends Model
 
     protected static function booted()
     {
+        static::addGlobalScope('user', function (Builder $builder) {
+            $builder->where('user_id', auth()->id());
+        });
+
         static::creating(function ($contact) {
             
             $contact->uid    = str_unique();
             $contact->status = Status::ACTIVE->value;
         });
+    }
+
+    /**
+     * Get the is_subscribed attribute.
+     * Defaults to true for existing contacts that have null.
+     *
+     * @param  mixed  $value
+     * @return bool
+     */
+    public function getIsSubscribedAttribute($value)
+    {
+        return $value === null ? true : (bool) $value;
     }
 
     /**
