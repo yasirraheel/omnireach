@@ -172,9 +172,9 @@
                         
                         <td data-label="{{ translate('Subscription')}}">
                             @if($contact->is_subscribed)
-                                <span class="badge badge--success badge-pill cursor-pointer" onclick="updateSubscriptionStatus({{ $contact->id }}, 0)">{{ translate("Subscribed") }}</span>
+                                <span class="i-badge success-solid pill cursor-pointer" onclick="updateSubscriptionStatus({{ $contact->id }}, 0)">{{ translate("Subscribed") }}</span>
                             @else
-                                <span class="badge badge--danger badge-pill cursor-pointer" onclick="updateSubscriptionStatus({{ $contact->id }}, 1)">{{ translate("Unsubscribed") }}</span>
+                                <span class="i-badge danger-solid pill cursor-pointer" onclick="updateSubscriptionStatus({{ $contact->id }}, 1)">{{ translate("Unsubscribed") }}</span>
                             @endif
                         </td>
                         
