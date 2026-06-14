@@ -35,7 +35,7 @@
     </div>
 </div>
 
-@pushonce('script-push')
+@push('script-push')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Helper to get CKEditor instance dynamically
@@ -77,4 +77,4 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
-@endpushonce
+@endpush
