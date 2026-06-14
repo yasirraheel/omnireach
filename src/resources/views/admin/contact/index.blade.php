@@ -621,7 +621,7 @@
         })(jQuery);
 
         function updateSubscriptionStatus(id, status) {
-            var url = "{{ route('admin.subscription.status.update') }}";
+            var url = "{{ route('admin.contact.subscription.status.update') }}";
             var token = "{{ csrf_token() }}";
             var data = {id: id, status: status, _token: token};
 
