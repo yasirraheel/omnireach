@@ -128,15 +128,16 @@ class WhatsAppClient {
       this.socket.ev.on('call', async (calls) => {
         for (const call of calls) {
           try {
-            // Reject incoming calls to prevent session issues
+            // We used to reject calls, but users requested normal calling to work.
+            // Just log that a call was received, but don't reject it.
             if (!call.isGroup && call.status === 'offer') {
-              await this.socket.rejectCall(call.id, call.from);
-              logger.info(`Rejected incoming call from: ${call.from}`, {
+              // await this.socket.rejectCall(call.id, call.from);
+              logger.info(`Incoming call from: ${call.from} (ignored by bot, ringing on phone)`, {
                 sessionId: this.sessionId,
               });
             }
           } catch (err) {
-            logger.debug(`Could not reject call: ${err.message}`);
+            logger.debug(`Error handling incoming call: ${err.message}`);
           }
         }
       });
