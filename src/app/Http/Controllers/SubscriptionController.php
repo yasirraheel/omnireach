@@ -17,12 +17,22 @@ class SubscriptionController extends Controller
      */
     public function showSubscribeForm(Request $request, $user_uid, $group_uid = null, ThemeManager $themeManager)
     {
-        $user = User::where('uid', $user_uid)->orWhere('id', $user_uid)->firstOrFail();
-        $group = null;
-        if ($group_uid) {
-            $group = ContactGroup::where(function($q) use ($group_uid) {
-                $q->where('uid', $group_uid)->orWhere('id', $group_uid);
-            })->where('user_id', $user->id)->first();
+        if ($user_uid === 'admin') {
+            $user = (object)['id' => null, 'uid' => 'admin', 'name' => 'Admin'];
+            $group = null;
+            if ($group_uid) {
+                $group = ContactGroup::where(function($q) use ($group_uid) {
+                    $q->where('uid', $group_uid)->orWhere('id', $group_uid);
+                })->whereNull('user_id')->first();
+            }
+        } else {
+            $user = User::where('uid', $user_uid)->orWhere('id', $user_uid)->firstOrFail();
+            $group = null;
+            if ($group_uid) {
+                $group = ContactGroup::where(function($q) use ($group_uid) {
+                    $q->where('uid', $group_uid)->orWhere('id', $group_uid);
+                })->where('user_id', $user->id)->first();
+            }
         }
 
         return view($themeManager->view('sections.subscribe'), [
