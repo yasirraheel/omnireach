@@ -45,23 +45,35 @@ class SubscriptionController extends Controller
             'last_name' => 'nullable|string|max:90',
         ]);
 
-        $user = User::where('uid', $request->user_uid)->orWhere('id', $request->user_uid)->firstOrFail();
-        $group_id = null;
-        if ($request->group_uid) {
-            $group = ContactGroup::where(function($q) use ($request) {
-                $q->where('uid', $request->group_uid)->orWhere('id', $request->group_uid);
-            })->where('user_id', $user->id)->first();
-            $group_id = $group ? $group->id : null;
+        $user_id = null;
+        if ($request->user_uid === 'admin') {
+            $group_id = null;
+            if ($request->group_uid) {
+                $group = ContactGroup::where(function($q) use ($request) {
+                    $q->where('uid', $request->group_uid)->orWhere('id', $request->group_uid);
+                })->whereNull('user_id')->first();
+                $group_id = $group ? $group->id : null;
+            }
+        } else {
+            $user = User::where('uid', $request->user_uid)->orWhere('id', $request->user_uid)->firstOrFail();
+            $user_id = $user->id;
+            $group_id = null;
+            if ($request->group_uid) {
+                $group = ContactGroup::where(function($q) use ($request) {
+                    $q->where('uid', $request->group_uid)->orWhere('id', $request->group_uid);
+                })->where('user_id', $user->id)->first();
+                $group_id = $group ? $group->id : null;
+            }
         }
 
         $email = $request->email;
 
         // Check if contact already exists for this user
-        $contact = Contact::where('user_id', $user->id)->where('email_contact', $email)->first();
+        $contact = Contact::where('user_id', $user_id)->where('email_contact', $email)->first();
 
         if (!$contact) {
             $contact = new Contact();
-            $contact->user_id = $user->id;
+            $contact->user_id = $user_id;
             $contact->email_contact = $email;
             $contact->uid = generateUid();
         }
@@ -132,8 +144,14 @@ class SubscriptionController extends Controller
      */
     public function unsubscribeGeneral(Request $request, $user_uid, $email, $hash, ThemeManager $themeManager)
     {
-        $user = User::where('uid', $user_uid)->firstOrFail();
-        $expectedHash = hash('sha256', $user->uid . $email . env('APP_KEY'));
+        if ($user_uid === 'admin') {
+            $user_id = null;
+            $expectedHash = hash('sha256', 'admin' . $email . env('APP_KEY'));
+        } else {
+            $user = User::where('uid', $user_uid)->firstOrFail();
+            $user_id = $user->id;
+            $expectedHash = hash('sha256', $user->uid . $email . env('APP_KEY'));
+        }
 
         if (!hash_equals($expectedHash, $hash)) {
             abort(403, 'Invalid unsubscribe link.');
@@ -143,7 +161,7 @@ class SubscriptionController extends Controller
         DB::table('email_suppressions')->updateOrInsert(
             [
                 'email_address' => $email,
-                'user_id' => $user->id,
+                'user_id' => $user_id,
             ],
             [
                 'uid' => generateUid(),
@@ -154,7 +172,7 @@ class SubscriptionController extends Controller
         );
 
         // Also set contact to inactive and unsubscribed
-        Contact::where('user_id', $user->id)
+        Contact::where('user_id', $user_id)
             ->where('email_contact', $email)
             ->update([
                 'status' => 'inactive',
