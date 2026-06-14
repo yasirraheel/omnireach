@@ -74,7 +74,7 @@
                                                data-url="{{ route('subscribe.form', ['user_uid' => 'admin', 'group_uid' => $contactGroup->uid ?? $contactGroup->id]) }}"
                                                data-bs-toggle="tooltip"
                                                title="{{ translate('Copy Subscribe URL') }}">
-                                                <i class="las la-link"></i>
+                                                <i class="ri-links-line"></i>
                                             </a>
                                             <button class="icon-btn btn-ghost btn-sm success-soft circle edit-contact-group"
                                                     data-bs-toggle="modal"

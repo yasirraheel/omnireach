@@ -142,6 +142,12 @@
                         </td>
                         <td>
                             <div class="d-flex align-items-center gap-1">
+                                <a href="javascript:void(0)" class="icon-btn btn-ghost btn-sm info-soft circle copy-subscribe-url"
+                                   data-url="{{ route('subscribe.form', ['user_uid' => auth()->user()->uid ?? auth()->user()->id, 'group_uid' => $contactGroup->uid ?? $contactGroup->id]) }}"
+                                   data-bs-toggle="tooltip"
+                                   title="{{ translate('Copy Subscribe URL') }}">
+                                    <i class="ri-links-line"></i>
+                                </a>
                                 <button class="icon-btn btn-ghost btn-sm success-soft circle edit-contact-group"
                                         data-bs-toggle="modal"
                                         data-bs-target="#editContactGroup"
@@ -296,6 +302,16 @@
             $('.checkAll').click(function() {
 
                 $('input:checkbox').not(this).prop('checked', this.checked);
+            });
+
+            $('.copy-subscribe-url').on('click', function(){
+                var url = $(this).data('url');
+                var tempInput = $("<input>");
+                $("body").append(tempInput);
+                tempInput.val(url).select();
+                document.execCommand("copy");
+                tempInput.remove();
+                notify('success', '{{ translate("Subscribe URL copied to clipboard") }}');
             });
         });
 
