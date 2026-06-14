@@ -107,6 +107,7 @@ class SubscriptionController extends Controller
 
         $contact->status = 'active';
         $contact->email_verification = 'verified';
+        $contact->is_subscribed = 1;
         $contact->save();
 
         // Remove from suppressions if it was there
@@ -148,10 +149,13 @@ class SubscriptionController extends Controller
             ]
         );
 
-        // Also set contact to inactive
+        // Also set contact to inactive and unsubscribed
         Contact::where('user_id', $user->id)
             ->where('email_contact', $email)
-            ->update(['status' => 'inactive']);
+            ->update([
+                'status' => 'inactive',
+                'is_subscribed' => 0
+            ]);
 
         return view($themeManager->view('sections.subscribe-success'), [
             'title' => translate('Unsubscribed'),

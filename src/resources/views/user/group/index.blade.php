@@ -65,6 +65,9 @@
 
 							<td data-label={{ translate('Action')}}>
 								<div class="d-flex align-items-center justify-content-md-start justify-content-end gap-3">
+                                    @if(auth()->user()->uid && $group->uid)
+                                        <a href="javascript:void(0)" class="i-btn info--btn btn--sm copy-subscribe-url" data-url="{{ route('subscribe.form', ['user_uid' => auth()->user()->uid, 'group_uid' => $group->uid]) }}" data-bs-toggle="tooltip" title="{{ translate('Copy Subscribe URL') }}"><i class="las la-link"></i></a>
+                                    @endif
 									<a class="i-btn primary--btn btn--sm group" data-bs-toggle="modal" data-bs-target="#updatebrand" href="javascript:void(0)"
 										data-id="{{$group->id}}"
 										data-name="{{$group->name}}"
@@ -213,6 +216,16 @@
 			modal.find('input[name=id]').val($(this).data('id'));
 			modal.modal('show');
 		});
+
+        $('.copy-subscribe-url').on('click', function(){
+            var url = $(this).data('url');
+            var tempInput = $("<input>");
+            $("body").append(tempInput);
+            tempInput.val(url).select();
+            document.execCommand("copy");
+            tempInput.remove();
+            notify('success', '{{ translate("Subscribe URL copied to clipboard") }}');
+        });
 	})(jQuery);
 </script>
 @endpush
