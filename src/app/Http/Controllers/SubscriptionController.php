@@ -17,10 +17,12 @@ class SubscriptionController extends Controller
      */
     public function showSubscribeForm(Request $request, $user_uid, $group_uid = null, ThemeManager $themeManager)
     {
-        $user = User::where('uid', $user_uid)->firstOrFail();
+        $user = User::where('uid', $user_uid)->orWhere('id', $user_uid)->firstOrFail();
         $group = null;
         if ($group_uid) {
-            $group = ContactGroup::where('uid', $group_uid)->where('user_id', $user->id)->first();
+            $group = ContactGroup::where(function($q) use ($group_uid) {
+                $q->where('uid', $group_uid)->orWhere('id', $group_uid);
+            })->where('user_id', $user->id)->first();
         }
 
         return view($themeManager->view('sections.subscribe'), [
@@ -43,10 +45,12 @@ class SubscriptionController extends Controller
             'last_name' => 'nullable|string|max:90',
         ]);
 
-        $user = User::where('uid', $request->user_uid)->firstOrFail();
+        $user = User::where('uid', $request->user_uid)->orWhere('id', $request->user_uid)->firstOrFail();
         $group_id = null;
         if ($request->group_uid) {
-            $group = ContactGroup::where('uid', $request->group_uid)->where('user_id', $user->id)->first();
+            $group = ContactGroup::where(function($q) use ($request) {
+                $q->where('uid', $request->group_uid)->orWhere('id', $request->group_uid);
+            })->where('user_id', $user->id)->first();
             $group_id = $group ? $group->id : null;
         }
 

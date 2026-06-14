@@ -65,9 +65,7 @@
 
 							<td data-label={{ translate('Action')}}>
 								<div class="d-flex align-items-center justify-content-md-start justify-content-end gap-3">
-                                    @if(auth()->user()->uid && $group->uid)
-                                        <a href="javascript:void(0)" class="i-btn info--btn btn--sm copy-subscribe-url" data-url="{{ route('subscribe.form', ['user_uid' => auth()->user()->uid, 'group_uid' => $group->uid]) }}" data-bs-toggle="tooltip" title="{{ translate('Copy Subscribe URL') }}"><i class="las la-link"></i></a>
-                                    @endif
+                                    <a href="javascript:void(0)" class="i-btn info--btn btn--sm copy-subscribe-url" data-url="{{ route('subscribe.form', ['user_uid' => auth()->user()->uid ?? auth()->user()->id, 'group_uid' => $group->uid ?? $group->id]) }}" data-bs-toggle="tooltip" title="{{ translate('Copy Subscribe URL') }}"><i class="las la-link"></i></a>
 									<a class="i-btn primary--btn btn--sm group" data-bs-toggle="modal" data-bs-target="#updatebrand" href="javascript:void(0)"
 										data-id="{{$group->id}}"
 										data-name="{{$group->name}}"
