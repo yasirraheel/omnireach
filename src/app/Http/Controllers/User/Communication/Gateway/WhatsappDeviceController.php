@@ -256,7 +256,8 @@ class WhatsappDeviceController extends Controller
      * @param string|int $id
      * @return RedirectResponse
      */
-    public function extractGroups(Request $request, string|int $id): RedirectResponse
+
+            public function extractGroups(Request $request, string|int $id): RedirectResponse
     {
         try {
             $user = auth()->user();
@@ -265,7 +266,7 @@ class WhatsappDeviceController extends Controller
                 return back()->withNotify([['error', 'Invalid gateway type']]);
             }
 
-            $response = $this->nodeService->extractGroups($id);
+            $response = $this->nodeService->extractGroups($gateway->name);
 
             if (!$response['success']) {
                 return back()->withNotify([['error', $response['message']]]);
