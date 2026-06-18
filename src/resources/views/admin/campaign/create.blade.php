@@ -111,13 +111,20 @@
                                                 <div class="form-inner">
                                                     <label for="timezone" class="form-label">{{ translate('Timezone') }}</label>
                                                     <select name="timezone" id="timezone" class="form-select">
-                                                        <option value="UTC">UTC</option>
-                                                        <option value="America/New_York">EST (New York)</option>
-                                                        <option value="America/Los_Angeles">PST (Los Angeles)</option>
-                                                        <option value="Europe/London">GMT (London)</option>
-                                                        <option value="Asia/Dubai">GST (Dubai)</option>
-                                                        <option value="Asia/Kolkata">IST (Kolkata)</option>
-                                                        <option value="Asia/Dhaka">BST (Dhaka)</option>
+                                                        @php
+                                                            $systemTz = site_settings('time_zone') ?: config('app.timezone');
+                                                            $currentTz = old('timezone', $systemTz);
+                                                        @endphp
+                                                        <option value="{{ $systemTz }}" {{ $currentTz == $systemTz ? 'selected' : '' }}>
+                                                            {{ translate('System Default') }} ({{ $systemTz }})
+                                                        </option>
+                                                        @foreach(timezone_identifiers_list() as $tz)
+                                                            @if($tz !== $systemTz)
+                                                                <option value="{{ $tz }}" {{ $currentTz == $tz ? 'selected' : '' }}>
+                                                                    {{ $tz }}
+                                                                </option>
+                                                            @endif
+                                                        @endforeach
                                                     </select>
                                                 </div>
                                             </div>

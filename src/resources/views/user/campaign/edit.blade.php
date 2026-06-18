@@ -112,14 +112,20 @@
                                                 <div class="form-inner">
                                                     <label for="timezone" class="form-label">{{ translate('Timezone') }}</label>
                                                     <select name="timezone" id="timezone" class="form-select">
-                                                        @php $currentTz = old('timezone', $campaign->timezone ?? 'UTC'); @endphp
-                                                        <option value="UTC" {{ $currentTz == 'UTC' ? 'selected' : '' }}>UTC</option>
-                                                        <option value="America/New_York" {{ $currentTz == 'America/New_York' ? 'selected' : '' }}>EST (New York)</option>
-                                                        <option value="America/Los_Angeles" {{ $currentTz == 'America/Los_Angeles' ? 'selected' : '' }}>PST (Los Angeles)</option>
-                                                        <option value="Europe/London" {{ $currentTz == 'Europe/London' ? 'selected' : '' }}>GMT (London)</option>
-                                                        <option value="Asia/Dubai" {{ $currentTz == 'Asia/Dubai' ? 'selected' : '' }}>GST (Dubai)</option>
-                                                        <option value="Asia/Kolkata" {{ $currentTz == 'Asia/Kolkata' ? 'selected' : '' }}>IST (Kolkata)</option>
-                                                        <option value="Asia/Dhaka" {{ $currentTz == 'Asia/Dhaka' ? 'selected' : '' }}>BST (Dhaka)</option>
+                                                        @php
+                                                            $systemTz = site_settings('time_zone') ?: config('app.timezone');
+                                                            $currentTz = old('timezone', $campaign->timezone ?? $systemTz);
+                                                        @endphp
+                                                        <option value="{{ $systemTz }}" {{ $currentTz == $systemTz ? 'selected' : '' }}>
+                                                            {{ translate('System Default') }} ({{ $systemTz }})
+                                                        </option>
+                                                        @foreach(timezone_identifiers_list() as $tz)
+                                                            @if($tz !== $systemTz)
+                                                                <option value="{{ $tz }}" {{ $currentTz == $tz ? 'selected' : '' }}>
+                                                                    {{ $tz }}
+                                                                </option>
+                                                            @endif
+                                                        @endforeach
                                                     </select>
                                                 </div>
                                             </div>
