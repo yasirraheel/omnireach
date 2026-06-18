@@ -45,7 +45,7 @@ class SendWhatsapp
      *
      * @return bool
      */
-    public function send(Gateway $gateway, array|string $to, array|Collection|DispatchLog $dispatchLog, Message $message, string $body): bool
+    public function send(Gateway $gateway, array|string $to, array|Collection|DispatchLog|null $dispatchLog = null, Message $message = null, string $body = ''): bool
     {
         $body = textSpinner($body);
         return $this->sendWithHandler($gateway, $to,$dispatchLog, $message, $body);
@@ -121,7 +121,7 @@ class SendWhatsapp
      * 
      * @return bool
      */
-    public function sendWithHandler(Gateway $gateway, array|string $to, array|Collection|DispatchLog $dispatchLog, Message $message, string $body): bool
+    public function sendWithHandler(Gateway $gateway, array|string $to, array|Collection|DispatchLog|null $dispatchLog = null, Message $message = null, string $body = ''): bool
     {
         try {
             $success = false;
@@ -150,7 +150,7 @@ class SendWhatsapp
                 return true;
             }
 
-            $this->fail($dispatchLog, $e->getMessage());
+            if ($dispatchLog) $this->fail($dispatchLog, $e->getMessage());
             return false;
         }
     }
@@ -173,7 +173,7 @@ class SendWhatsapp
      *
      * @return string
      */
-    private function replaceMessageVariables(string $messageData, DispatchLog $log, Gateway $gateway, string $receiver): string {
+    private function replaceMessageVariables(string $messageData, DispatchLog|null $log, Gateway $gateway, string $receiver): string {
 
         // Check if message has variables
         if (strpos($messageData, '{{') === false && strpos($messageData, '{') === false) {
@@ -181,7 +181,7 @@ class SendWhatsapp
         }
 
         // Get contact from dispatch log
-        $contact = $log->contact;
+        $contact = $log ? $log->contact : null;
 
         // Build replacement map with contact data
         $variables = [
@@ -328,7 +328,7 @@ class SendWhatsapp
      *
      * @return bool
      */
-    public function sendNodeMessages(DispatchLog $log, Gateway $gateway, Message $message, string $messageData, string|array $to): bool {
+    public function sendNodeMessages(DispatchLog|null $log, Gateway $gateway, Message $message = null, string $messageData = '', string|array $to = ''): bool {
 
         // Validate session before sending
         $sessionCheck = $this->validateSession($gateway);
@@ -350,7 +350,7 @@ class SendWhatsapp
         $messageData = $this->replaceMessageVariables($messageData, $log, $gateway, $receiver);
 
         $body = [];
-        if(!is_null($message->file_info)) {
+        if($message && !is_null($message->file_info)) {
             
             $url  = Arr::get($message->file_info, 'url_file', null);
             $type = Arr::get($message->file_info, 'type', null);
@@ -475,7 +475,7 @@ class SendWhatsapp
      *
      * @return bool
      */
-    public static function sendCloudApiMessages(DispatchLog $log, Gateway $gateway, Message $message, string $body, string|array $to): bool {
+    public static function sendCloudApiMessages(DispatchLog|null $log, Gateway $gateway, Message $message = null, string $body = '', string|array $to = ''): bool {
 
         $message                = $message->load(['template']);
         $template               = $message->template;
@@ -546,13 +546,15 @@ class SendWhatsapp
         }
 
         // Success - update log and return true
-        $log->response_message = $responseData;
-        $log->status           = SystemCommunicationStatusEnum::PROCESSING->value;
-        $log->update();
+        if ($log) {
+            $log->response_message = $responseData;
+            $log->status           = SystemCommunicationStatusEnum::PROCESSING->value;
+            $log->update();
+        }
 
         Log::info("WhatsApp Cloud API Success", [
             'message_id' => Arr::get($responseData, 'messages.0.id'),
-            'dispatch_log_id' => $log->id
+            'dispatch_log_id' => $log?->id
         ]);
 
         return true;

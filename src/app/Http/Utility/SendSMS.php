@@ -51,7 +51,7 @@ class SendSMS
      * @param array|string|null $message
      * @return bool
      */
-    public function send(string $provider, array|string $to, Gateway $gateway, array|Collection|DispatchLog $dispatchLog, array|string|null $message = null): bool
+    public function send(string $provider, array|string $to, Gateway $gateway, array|Collection|DispatchLog|null $dispatchLog = null, array|string|null $message = null): bool
     {
         $message = textSpinner($message);
         return $this->sendWithHandler($provider, $to, $gateway, $dispatchLog, $message);
@@ -67,7 +67,7 @@ class SendSMS
      * @param array|string|null $message
      * @return bool
      */
-    protected function sendWithHandler(string $provider, array|string $to, Gateway $gateway, array|Collection|DispatchLog $dispatchLog, array|string|null $message = null): bool
+    protected function sendWithHandler(string $provider, array|string $to, Gateway $gateway, array|Collection|DispatchLog|null $dispatchLog = null, array|string|null $message = null): bool
     {
         $creds = null;
         if ($provider == SmsProviderKey::CUSTOM->value) {
@@ -77,7 +77,7 @@ class SendSMS
         }
 
         if (!$creds) {
-            $this->fail($dispatchLog, translate("Gateway credentials are not available"));
+            if ($dispatchLog) $this->fail($dispatchLog, translate("Gateway credentials are not available"));
             return false;
         }
 
@@ -125,8 +125,7 @@ class SendSMS
             }
             return $success;
         } catch (Exception $e) {
-            
-            $this->fail($dispatchLog, $e->getMessage());
+            if ($dispatchLog) $this->fail($dispatchLog, $e->getMessage());
             return false;
         }
     }

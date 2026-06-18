@@ -5,10 +5,14 @@ namespace App\Services\Campaign;
 use App\Enums\Campaign\CampaignChannel;
 use App\Enums\Campaign\DispatchStatus;
 use App\Enums\Campaign\UnifiedCampaignStatus;
+use App\Http\Utility\SendMail;
+use App\Http\Utility\SendSMS;
+use App\Http\Utility\SendWhatsapp;
 use App\Models\CampaignDispatch;
 use App\Models\CampaignMessage;
 use App\Models\Contact;
 use App\Models\Gateway;
+use App\Models\Message;
 use App\Models\UnifiedCampaign;
 use Illuminate\Support\Facades\Log;
 
@@ -28,7 +32,7 @@ class CampaignDispatchService
             $gateway = $dispatch->gateway;
 
             if (!$message || !$contact || !$gateway) {
-                $dispatch->markAsFailed('Missing required data');
+                $dispatch->markAsFailed('Missing required data: ' . (!$message ? 'message' : (!$contact ? 'contact' : 'gateway')));
                 return false;
             }
 
@@ -37,10 +41,10 @@ class CampaignDispatchService
 
             // Send based on channel
             $result = match ($dispatch->channel) {
-                CampaignChannel::SMS => $this->sendSms($dispatch, $gateway, $contact, $content),
-                CampaignChannel::EMAIL => $this->sendEmail($dispatch, $gateway, $contact, $content, $message),
+                CampaignChannel::SMS      => $this->sendSms($dispatch, $gateway, $contact, $content),
+                CampaignChannel::EMAIL    => $this->sendEmail($dispatch, $gateway, $contact, $content, $message),
                 CampaignChannel::WHATSAPP => $this->sendWhatsApp($dispatch, $gateway, $contact, $content, $message),
-                default => false,
+                default                   => false,
             };
 
             if ($result) {
@@ -64,7 +68,7 @@ class CampaignDispatchService
     }
 
     /**
-     * Send SMS
+     * Send SMS using the existing SendSMS utility
      */
     protected function sendSms(
         CampaignDispatch $dispatch,
@@ -75,27 +79,22 @@ class CampaignDispatchService
         $phone = $contact->sms_contact;
 
         if (empty($phone)) {
-            $dispatch->markAsFailed('No phone number');
+            $dispatch->markAsFailed('No SMS phone number for contact');
             return false;
         }
 
-        // Use existing SMS sending infrastructure
-        $smsService = app(\App\Service\SmsService::class);
-
         try {
-            $result = $smsService->sendSMS(
-                gateway: $gateway,
-                phone: $phone,
-                message: $content
-            );
+            $sendSMS  = new SendSMS();
+            $provider = strtolower($gateway->type);
 
-            if ($result['status'] ?? false) {
-                $dispatch->addMetadata('provider_response', $result['response'] ?? null);
-                return true;
+            // SendSMS::send returns bool; pass null for dispatchLog so it won't try to update a DispatchLog record
+            $success = $sendSMS->send($provider, $phone, $gateway, null, $content);
+
+            if (!$success) {
+                $dispatch->markAsFailed('SMS sending failed via provider: ' . $provider);
             }
 
-            $dispatch->markAsFailed($result['message'] ?? 'SMS sending failed');
-            return false;
+            return $success;
         } catch (\Exception $e) {
             $dispatch->markAsFailed($e->getMessage());
             return false;
@@ -103,7 +102,7 @@ class CampaignDispatchService
     }
 
     /**
-     * Send Email
+     * Send Email using the existing SendMail utility
      */
     protected function sendEmail(
         CampaignDispatch $dispatch,
@@ -115,30 +114,24 @@ class CampaignDispatchService
         $email = $contact->email_contact;
 
         if (empty($email)) {
-            $dispatch->markAsFailed('No email address');
+            $dispatch->markAsFailed('No email address for contact');
             return false;
         }
 
         $subject = $message->getPersonalizedSubject($contact);
 
-        // Use existing email sending infrastructure
-        $emailService = app(\App\Service\MailService::class);
-
         try {
-            $result = $emailService->sendMail(
-                gateway: $gateway,
-                email: $email,
-                subject: $subject,
-                message: $content
-            );
+            $sendMail = new SendMail();
+            $attachments = $message->hasAttachments() ? $message->attachments : null;
 
-            if ($result['status'] ?? false) {
-                $dispatch->addMetadata('provider_response', $result['response'] ?? null);
-                return true;
+            // SendMail::send returns bool; pass null for dispatchLog
+            $success = $sendMail->send($gateway, $email, $subject, $content, null, $attachments);
+
+            if (!$success) {
+                $dispatch->markAsFailed('Email sending failed');
             }
 
-            $dispatch->markAsFailed($result['message'] ?? 'Email sending failed');
-            return false;
+            return $success;
         } catch (\Exception $e) {
             $dispatch->markAsFailed($e->getMessage());
             return false;
@@ -146,7 +139,7 @@ class CampaignDispatchService
     }
 
     /**
-     * Send WhatsApp message
+     * Send WhatsApp message using the existing SendWhatsapp utility
      */
     protected function sendWhatsApp(
         CampaignDispatch $dispatch,
@@ -158,39 +151,29 @@ class CampaignDispatchService
         $phone = $contact->whatsapp_contact;
 
         if (empty($phone)) {
-            $dispatch->markAsFailed('No WhatsApp number');
+            $dispatch->markAsFailed('No WhatsApp number for contact');
             return false;
         }
 
-        // Use existing WhatsApp sending infrastructure
-        $whatsappService = app(\App\Service\WhatsAppService::class);
-
         try {
-            $payload = [
-                'phone' => $phone,
-                'message' => $content,
-            ];
+            $sendWhatsapp = new SendWhatsapp();
 
-            // Add attachments if any
-            if ($message->hasAttachments()) {
-                $payload['attachments'] = $message->attachments;
+            // Build a minimal Message-like object for SendWhatsapp
+            // SendWhatsapp::send expects: Gateway, string|array $to, DispatchLog|Collection $dispatchLog, Message $message, string $body
+            // We create a fake Message model-like object from campaign message data
+            $fakeMessage = new Message();
+            $fakeMessage->message    = $content;
+            $fakeMessage->file_info  = $message->hasAttachments() ? ['attachments' => $message->attachments] : null;
+            $fakeMessage->subject    = $message->subject ?? null;
+
+            // SendWhatsapp::send returns bool; pass null for dispatchLog so it won't try to update DispatchLog
+            $success = $sendWhatsapp->send($gateway, $phone, null, $fakeMessage, $content);
+
+            if (!$success) {
+                $dispatch->markAsFailed('WhatsApp sending failed');
             }
 
-            // Add template if using Cloud API
-            if ($message->template_id) {
-                $payload['template_id'] = $message->template_id;
-            }
-
-            $result = $whatsappService->sendMessage($gateway, $payload);
-
-            if ($result['status'] ?? false) {
-                $dispatch->addMetadata('provider_response', $result['response'] ?? null);
-                $dispatch->addMetadata('message_id', $result['message_id'] ?? null);
-                return true;
-            }
-
-            $dispatch->markAsFailed($result['message'] ?? 'WhatsApp sending failed');
-            return false;
+            return $success;
         } catch (\Exception $e) {
             $dispatch->markAsFailed($e->getMessage());
             return false;
@@ -238,7 +221,7 @@ class CampaignDispatchService
 
         $processed = 0;
         $succeeded = 0;
-        $failed = 0;
+        $failed    = 0;
 
         foreach ($dispatches as $dispatch) {
             $processed++;
@@ -253,7 +236,7 @@ class CampaignDispatchService
         return [
             'processed' => $processed,
             'succeeded' => $succeeded,
-            'failed' => $failed,
+            'failed'    => $failed,
         ];
     }
 
@@ -330,9 +313,9 @@ class CampaignDispatchService
     {
         $groupBy = match ($period) {
             'minute' => "DATE_FORMAT(sent_at, '%Y-%m-%d %H:%i')",
-            'hour' => "DATE_FORMAT(sent_at, '%Y-%m-%d %H:00')",
-            'day' => "DATE(sent_at)",
-            default => "DATE_FORMAT(sent_at, '%Y-%m-%d %H:00')",
+            'hour'   => "DATE_FORMAT(sent_at, '%Y-%m-%d %H:00')",
+            'day'    => "DATE(sent_at)",
+            default  => "DATE_FORMAT(sent_at, '%Y-%m-%d %H:00')",
         };
 
         return $campaign->dispatches()
