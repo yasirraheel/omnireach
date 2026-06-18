@@ -1689,7 +1689,7 @@ class NodeService
           try {
                $response = Http::withHeaders($this->getHeaders())
                     ->timeout(30)
-                    ->get($this->getBaseUrl() . '/api/sessions/groups/' . $sessionId);
+                    ->get($this->getBaseUrl() . '/sessions/groups/' . $sessionId);
 
                if ($response->successful()) {
                     $responseData = $response->json();
