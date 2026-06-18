@@ -645,6 +645,14 @@
             }
         }
     });
+    });
+            });
+
+            // Ensure layout shifts correctly if a sub-menu is automatically shown
+            document.addEventListener('DOMContentLoaded', function() {
+                if (document.querySelector('.sub-menu-wrapper.show')) {
+                    document.documentElement.classList.add('menu-active');
+                }
             });
         </script>
     </body>
