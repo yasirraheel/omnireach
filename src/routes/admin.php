@@ -247,6 +247,7 @@ Route::middleware([
                                 Route::post('update', 'updateServer')->name('update');
                                 Route::post('qr-code', 'whatsappQRGenerate')->name('qrcode');
                                 Route::post('status', 'getDeviceStatus')->name('status');
+                                Route::post('extract-groups/{id}', 'extractGroups')->name('extract-groups');
                                 Route::post('generate-api-key', 'generateApiKey')->name('generate.api.key');
                                 Route::get('health', 'checkServiceHealth')->name('health');
                                 Route::get('health-report', 'getHealthReport')->name('health.report');

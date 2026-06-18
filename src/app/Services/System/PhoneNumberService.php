@@ -58,6 +58,18 @@ class PhoneNumberService
     {
         $original = $phoneNumber;
 
+        // Step 0: Check if it's a WhatsApp Group JID or Channel JID
+        // Group JIDs look like 123456789-987654321@g.us
+        // Channel JIDs look like 123456789@newsletter
+        if (str_ends_with($phoneNumber, '@g.us') || str_ends_with($phoneNumber, '@newsletter') || str_ends_with($phoneNumber, '@lid')) {
+            return [
+                'success' => true,
+                'formatted' => $phoneNumber,
+                'original' => $original,
+                'country_code' => '',
+            ];
+        }
+
         // Step 1: Clean the number - remove all non-digit characters except +
         $cleaned = preg_replace('/[^\d+]/', '', trim($phoneNumber));
 

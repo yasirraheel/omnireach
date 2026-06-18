@@ -241,4 +241,25 @@ router.post(
   }
 );
 
+/**
+ * GET /sessions/groups/:id
+ * Fetch all groups the session is participating in
+ */
+router.get(
+  '/groups/:id',
+  [param('id').notEmpty().withMessage('Session ID is required')],
+  validate,
+  async (req, res, next) => {
+    try {
+      const { id } = req.params;
+      const result = await SessionService.getGroups(id);
+
+      return successResponse(res, 200, 'Groups fetched successfully', result.data);
+    } catch (error) {
+      logger.error(`Get groups failed: ${error.message}`);
+      return errorResponse(res, 400, error.message);
+    }
+  }
+);
+
 export default router;

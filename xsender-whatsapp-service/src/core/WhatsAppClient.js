@@ -743,6 +743,27 @@ class WhatsAppClient {
       return false;
     }
   }
+  /**
+   * Fetch all groups the bot is participating in
+   */
+  async getGroups() {
+    this.ensureConnected();
+    try {
+      const groups = await this.socket.groupFetchAllParticipating();
+      return Object.values(groups).map((group) => ({
+        id: group.id,
+        name: group.subject,
+        participants: group.participants?.length || 0,
+        creation: group.creation,
+        owner: group.owner,
+      }));
+    } catch (error) {
+      logger.error(`Failed to fetch groups for session: ${this.sessionId}`, {
+        error: error.message,
+      });
+      throw error;
+    }
+  }
 }
 
 export default WhatsAppClient;

@@ -425,6 +425,29 @@ class SessionService {
       throw error;
     }
   }
+
+  /**
+   * Fetch groups for a session
+   */
+  async getGroups(sessionId) {
+    try {
+      const client = SessionManager.get(sessionId);
+
+      if (!client) {
+        throw new Error('Session not found');
+      }
+
+      const groups = await client.getGroups();
+
+      return {
+        success: true,
+        data: groups,
+      };
+    } catch (error) {
+      logger.error(`Failed to fetch groups: ${error.message}`, { sessionId });
+      throw error;
+    }
+  }
 }
 
 export default new SessionService();

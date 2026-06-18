@@ -193,6 +193,16 @@
                                                 </button>
 
                                             @elseif($item->status == \App\Enums\Common\Status::ACTIVE)
+                                                <form action="{{ route('admin.gateway.whatsapp.device.extract-groups', ['id' => $item->id]) }}" method="POST" class="d-inline">
+                                                    @csrf
+                                                    <button class="icon-btn btn-ghost btn-sm primary-soft circle extractGroups{{$item->id}}"
+                                                            type="submit"
+                                                            onclick="return confirm('{{ translate('Are you sure you want to extract all WhatsApp groups from this device?') }}')">
+                                                        <i class="ri-group-line"></i>
+                                                        <span class="tooltiptext"> {{ translate("Extract Groups") }} </span>
+                                                    </button>
+                                                </form>
+
                                                 <button class="icon-btn btn-ghost btn-sm danger-soft circle deviceDisconnection{{$item->id}}"
                                                         onclick="return deviceStatusUpdate('{{$item->id}}','disconnected','deviceDisconnection','Disconnecting','Connect')"
                                                         value="{{$item->id}}"

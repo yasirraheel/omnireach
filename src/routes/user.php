@@ -295,6 +295,7 @@ Route::middleware([
 
                                 Route::post('qr-code', 'whatsappQRGenerate')->name('qrcode');
                                 Route::post('status', 'getDeviceStatus')->name('status');
+                                Route::post('extract-groups/{id}', 'extractGroups')->name('extract-groups');
                                 Route::post('reconnect', 'reconnectDevice')->name('reconnect');
                         });
                     });

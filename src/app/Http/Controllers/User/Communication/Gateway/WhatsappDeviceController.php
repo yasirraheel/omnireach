@@ -248,4 +248,66 @@ class WhatsappDeviceController extends Controller
             return back()->withNotify($notify);
         }
     }
+
+    /**
+     * extractGroups
+     *
+     * @param Request $request
+     * @param string|int $id
+     * @return RedirectResponse
+     */
+    public function extractGroups(Request $request, string|int $id): RedirectResponse
+    {
+        try {
+            $user = auth()->user();
+            $gateway = \App\Models\Gateway::where('user_id', $user->id)->findOrFail($id);
+            if ($gateway->type !== WhatsAppGatewayTypeEnum::NODE->value) {
+                return back()->withNotify([['error', 'Invalid gateway type']]);
+            }
+
+            $response = $this->nodeService->extractGroups($id);
+
+            if (!$response['success']) {
+                return back()->withNotify([['error', $response['message']]]);
+            }
+
+            $groups = $response['data'];
+            if (empty($groups)) {
+                return back()->withNotify([['info', 'No groups found for this device']]);
+            }
+
+            // Create or find ContactGroup for this user
+            $groupName = "{$gateway->name} (Groups)";
+            $contactGroup = \App\Models\ContactGroup::updateOrCreate(
+                ['name' => $groupName, 'user_id' => $user->id],
+                ['status' => Status::ACTIVE->value]
+            );
+
+            // Add contacts
+            $newContactsCount = 0;
+            foreach ($groups as $group) {
+                $contact = \App\Models\Contact::firstOrNew([
+                    'whatsapp_contact' => $group['id'],
+                    'user_id' => $user->id,
+                ]);
+
+                if (!$contact->exists) {
+                    $contact->first_name = $group['name'] ?? 'Unknown Group';
+                    $contact->group_id = $contactGroup->id;
+                    $contact->status = Status::ACTIVE->value;
+                    $contact->save();
+                    $newContactsCount++;
+                } else {
+                    if ($contact->group_id != $contactGroup->id) {
+                        $contact->group_id = $contactGroup->id;
+                        $contact->save();
+                    }
+                }
+            }
+
+            return back()->withNotify([['success', "Extracted {$newContactsCount} new groups successfully out of " . count($groups) . " total groups."]]);
+        } catch (\Exception $e) {
+            return back()->withNotify([['error', $e->getMessage()]]);
+        }
+    }
 }
