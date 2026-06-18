@@ -300,7 +300,7 @@ document.addEventListener('DOMContentLoaded', function() {
     campaignType.dispatchEvent(new Event('change'));
 
     // Contact group change - load distribution
-    contactGroup.addEventListener('change', function() {
+    $(contactGroup).on('change', function() {
         var groupId = this.value;
         if (!groupId) {
             distributionDiv.innerHTML = '<div class="distribution-empty"><i class="ri-pie-chart-2-line"></i><p>{{ translate("Select a contact group to see distribution") }}</p></div>';
@@ -340,7 +340,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Trigger distribution load on page load if group is pre-selected
-    if (contactGroup.value) contactGroup.dispatchEvent(new Event('change'));
+    if (contactGroup.value) $(contactGroup).trigger('change');
 });
 </script>
 @endpush
