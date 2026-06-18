@@ -208,7 +208,7 @@
                                                     {{ $dispatch->status->label() }}
                                                 </span>
                                                 @if($dispatch->status->value === \App\Enums\Campaign\DispatchStatus::FAILED->value && $dispatch->error_message)
-                                                    <button type="button" class="btn btn-sm btn-outline-danger ms-2 p-0 px-1 border-0" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $dispatch->error_message }}" onclick="alert('Failure Reason:\n\n{{ str_replace('\'', '\\\'', $dispatch->error_message) }}')">
+                                                    <button type="button" class="btn btn-sm btn-outline-danger ms-2 p-0 px-1 border-0" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $dispatch->error_message }}" onclick="showErrorModal('{{ str_replace('\'', '\\\'', $dispatch->error_message) }}')">
                                                         <i class="ri-error-warning-line"></i>
                                                     </button>
                                                 @endif
@@ -507,6 +507,28 @@
 }
 .table tbody tr:last-child td { border-bottom: none; }
 </style>
+
+<!-- Error Modal -->
+<div class="modal fade" id="dispatchErrorModal" tabindex="-1" aria-labelledby="dispatchErrorModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="dispatchErrorModalLabel">
+                    <i class="ri-error-warning-line text-danger me-2"></i> {{ translate('Failure Reason') }}
+                </h5>
+                <button type="button" class="icon-btn btn-ghost btn-sm danger-soft circle" data-bs-dismiss="modal">
+                    <i class="ri-close-large-line"></i>
+                </button>
+            </div>
+            <div class="modal-body p-4">
+                <p id="dispatchErrorModalContent" class="text-danger mb-0" style="white-space: pre-wrap; font-size: 14px; background: rgba(220, 38, 38, 0.05); padding: 15px; border-radius: 8px; border: 1px solid rgba(220, 38, 38, 0.1);"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ translate('Close') }}</button>
+            </div>
+        </div>
+    </div>
+</div>
 @endpush
 
 @push('script-push')
@@ -535,4 +557,12 @@ setInterval(function() {
 }, 10000);
 </script>
 @endif
+
+<script>
+    function showErrorModal(message) {
+        document.getElementById('dispatchErrorModalContent').textContent = message;
+        var myModal = new bootstrap.Modal(document.getElementById('dispatchErrorModal'));
+        myModal.show();
+    }
+</script>
 @endpush
