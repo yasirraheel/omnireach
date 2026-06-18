@@ -258,7 +258,9 @@ class PhoneNumberService
         $formattedNumber = $formatted['formatted'];
 
         // Step 2: Validate length (international numbers are typically 10-15 digits)
-        if (strlen($formattedNumber) < 10 || strlen($formattedNumber) > 15) {
+        $isGroup = str_ends_with($formattedNumber, '@g.us');
+        
+        if (!$isGroup && (strlen($formattedNumber) < 10 || strlen($formattedNumber) > 15)) {
             return [
                 'success' => false,
                 'formatted' => $formattedNumber,
@@ -266,8 +268,8 @@ class PhoneNumberService
             ];
         }
 
-        // Step 3: Check if number exists on WhatsApp (optional but recommended)
-        if ($validateExists) {
+        // Step 3: Check if number exists on WhatsApp (optional but recommended, skipped for groups)
+        if ($validateExists && !$isGroup) {
             // Use cache to avoid repeated checks for the same number
             $cacheKey = "whatsapp_exists_{$gateway->name}_{$formattedNumber}";
             $exists = Cache::remember($cacheKey, now()->addHours(24), function () use ($formattedNumber, $gateway) {
@@ -281,7 +283,7 @@ class PhoneNumberService
                 return [
                     'success' => false,
                     'formatted' => $formattedNumber,
-                    'error' => "Number {$formattedNumber} is not registered on WhatsApp",
+                    'error' => "Number is not registered on WhatsApp",
                 ];
             }
         }
