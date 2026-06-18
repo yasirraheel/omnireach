@@ -747,7 +747,9 @@ class WhatsAppClient {
    * Fetch all groups the bot is participating in
    */
   async getGroups() {
-    this.ensureConnected();
+    if (!this.socket) {
+      throw new Error('Client is not connected');
+    }
     try {
       const groups = await this.socket.groupFetchAllParticipating();
       return Object.values(groups).map((group) => ({
