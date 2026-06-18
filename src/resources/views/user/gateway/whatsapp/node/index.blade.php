@@ -113,15 +113,14 @@
                                                 </button>
 
                                             @elseif($item->status == \App\Enums\Common\Status::ACTIVE)
-                                                <form action="{{ route('user.device.extract-groups', ['id' => $item->id]) }}" method="POST" class="d-inline">
-                                                    @csrf
-                                                    <button class="icon-btn btn-ghost btn-sm primary-soft circle extractGroups{{$item->id}}"
-                                                            type="submit"
-                                                            onclick="return confirm('{{ translate('Are you sure you want to extract all WhatsApp groups from this device?') }}')">
-                                                        <i class="ri-group-line"></i>
-                                                        <span class="tooltiptext"> {{ translate("Extract Groups") }} </span>
-                                                    </button>
-                                                </form>
+                                                <button class="icon-btn btn-ghost btn-sm primary-soft circle extract-whatsapp-groups"
+                                                        type="button"
+                                                        data-url="{{ route('user.device.extract-groups', ['id' => $item->id]) }}" 
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#extractGroupsModal">
+                                                    <i class="ri-group-line"></i>
+                                                    <span class="tooltiptext"> {{ translate("Extract Groups") }} </span>
+                                                </button>
 
                                                 <button class="icon-btn btn-ghost btn-sm danger-soft circle deviceDisconnection{{$item->id}}"
                                                         onclick="return deviceStatusUpdate('{{$item->id}}','disconnected','deviceDisconnection','Disconnecting','Connect')"
@@ -331,7 +330,7 @@
             <i class="bi bi-exclamation-circle"></i>
             </span>
         </div>
-        <form method="POST"  id="deleteWhatsappGateway">
+        <form method="POST" action="" id="deleteWhatsappGateway">
             @csrf
             <div class="modal-body">
                 <input type="hidden" name="_method" value="DELETE">
@@ -342,6 +341,30 @@
             <div class="modal-footer">
                 <button type="button" class="i-btn btn--dark outline btn--lg" data-bs-dismiss="modal"> {{ translate("Cancel") }} </button>
                 <button type="submit" class="i-btn btn--danger btn--lg" data-bs-dismiss="modal"> {{ translate("Delete") }} </button>
+            </div>
+        </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade actionModal" id="extractGroupsModal" tabindex="-1" aria-labelledby="extractGroupsModal" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered ">
+        <div class="modal-content">
+        <div class="modal-header text-start">
+            <span class="action-icon primary">
+            <i class="bi bi-people"></i>
+            </span>
+        </div>
+        <form method="POST" action="" id="extractGroupsForm">
+            @csrf
+            <div class="modal-body">
+                <div class="action-message">
+                    <h5>{{ translate("Are you sure you want to extract all WhatsApp groups from this device? This will create a new Contact Group and add all fetched groups to it.") }}</h5>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="i-btn btn--dark outline btn--lg" data-bs-dismiss="modal"> {{ translate("Cancel") }} </button>
+                <button type="submit" class="i-btn btn--primary btn--lg" data-bs-dismiss="modal"> {{ translate("Extract Groups") }} </button>
             </div>
         </form>
         </div>
@@ -420,6 +443,16 @@
         flatpickr("#datePicker", {
             dateFormat: "Y-m-d",
             mode: "range",
+        });
+
+        $(document).on('click', '.delete-whatsapp-device', function(e){
+            var url = $(this).data('url')
+            $('#deleteWhatsappGateway').attr('action', url)
+        });
+
+        $(document).on('click', '.extract-whatsapp-groups', function(e){
+            var url = $(this).data('url')
+            $('#extractGroupsForm').attr('action', url)
         });
 
         $(document).on('click', '.qrQuote', function(e) {

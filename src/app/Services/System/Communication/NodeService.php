@@ -1678,4 +1678,33 @@ class NodeService
           }
      }
 
+     /**
+      * Extract WhatsApp groups for a connected device
+      *
+      * @param string $sessionId
+      * @return array
+      */
+     public function extractGroups(string $sessionId): array
+     {
+          try {
+               $response = Http::withHeaders($this->getHeaders())
+                    ->timeout(30)
+                    ->get($this->getBaseUrl() . '/api/sessions/groups/' . $sessionId);
+
+               if ($response->successful()) {
+                    $responseData = $response->json();
+                    return [
+                         'success' => true,
+                         'data'    => $responseData['data'] ?? [],
+                         'message' => $responseData['message'] ?? 'Groups extracted successfully'
+                    ];
+               }
+
+               $errorMessage = $response->json('message') ?? 'Failed to extract groups from device';
+               return ['success' => false, 'message' => $errorMessage];
+          } catch (\Exception $e) {
+               Log::error("Failed to extract groups for session {$sessionId}: " . $e->getMessage());
+               return ['success' => false, 'message' => 'Node Server communication error'];
+          }
+     }
 }
