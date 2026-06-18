@@ -287,15 +287,15 @@ Route::middleware([
                     Route::controller(WhatsappDeviceController::class)
                             ->group(function () {
 
-                        Route::post('status/update', 'statusUpdate')->name('status.update');
+                            Route::post('status/update', 'statusUpdate')->name('status.update');
+                            Route::post('extract-groups/{id}', 'extractGroups')->name('extract-groups');
 
-                        Route::prefix('server')
-                                ->name('server.')
-                                ->group(function () {
+                            Route::prefix('server')
+                                    ->name('server.')
+                                    ->group(function () {
 
                                 Route::post('qr-code', 'whatsappQRGenerate')->name('qrcode');
                                 Route::post('status', 'getDeviceStatus')->name('status');
-                                Route::post('extract-groups/{id}', 'extractGroups')->name('extract-groups');
                                 Route::post('reconnect', 'reconnectDevice')->name('reconnect');
                         });
                     });
