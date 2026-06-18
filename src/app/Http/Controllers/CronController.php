@@ -77,6 +77,9 @@ class CronController extends Controller
             $this->processOngoingCampagin();
             $this->processCompletedCampagin();
 
+            // Process Unified Campaigns
+            \Illuminate\Support\Facades\Artisan::call('campaigns:process');
+
             // Android gateway update
             // $this->updateAndroidGateway();
 
