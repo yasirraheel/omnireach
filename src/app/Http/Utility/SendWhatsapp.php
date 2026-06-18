@@ -150,8 +150,11 @@ class SendWhatsapp
                 return true;
             }
 
-            if ($dispatchLog) $this->fail($dispatchLog, $e->getMessage());
-            return false;
+            if ($dispatchLog) {
+                $this->fail($dispatchLog, $e->getMessage());
+                return false;
+            }
+            throw $e;
         }
     }
 

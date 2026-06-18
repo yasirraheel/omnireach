@@ -125,8 +125,11 @@ class SendSMS
             }
             return $success;
         } catch (Exception $e) {
-            if ($dispatchLog) $this->fail($dispatchLog, $e->getMessage());
-            return false;
+            if ($dispatchLog) {
+                $this->fail($dispatchLog, $e->getMessage());
+                return false;
+            }
+            throw $e;
         }
     }
 

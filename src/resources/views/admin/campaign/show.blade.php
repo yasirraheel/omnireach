@@ -203,9 +203,16 @@
                                             </span>
                                         </td>
                                         <td>
-                                            <span class="badge {{ $dispatch->status->badgeClass() }}">
-                                                {{ $dispatch->status->label() }}
-                                            </span>
+                                            <div class="d-flex align-items-center">
+                                                <span class="badge {{ $dispatch->status->badgeClass() }}">
+                                                    {{ $dispatch->status->label() }}
+                                                </span>
+                                                @if($dispatch->status->value === \App\Enums\Campaign\DispatchStatus::FAILED->value && $dispatch->error_message)
+                                                    <button type="button" class="btn btn-sm btn-outline-danger ms-2 p-0 px-1 border-0" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $dispatch->error_message }}" onclick="alert('Failure Reason:\n\n{{ str_replace('\'', '\\\'', $dispatch->error_message) }}')">
+                                                        <i class="ri-error-warning-line"></i>
+                                                    </button>
+                                                @endif
+                                            </div>
                                         </td>
                                         <td class="pe-4">
                                             <small>{{ $dispatch->sent_at?->format('M d, H:i') ?? '-' }}</small>

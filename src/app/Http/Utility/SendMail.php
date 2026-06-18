@@ -139,8 +139,11 @@ class SendMail
         $creds = $this->getCredentials(ChannelTypeEnum::EMAIL, $gateway->type, $gateway);
         if (!$creds) {
             $this->lastError = translate("Gateway credentials are not available. Required meta_data fields may be missing.");
-            if ($dispatchLog) $this->fail($dispatchLog, $this->lastError);
-            return false;
+            if ($dispatchLog) {
+                $this->fail($dispatchLog, $this->lastError);
+                return false;
+            }
+            throw new Exception($this->lastError ?? 'Unknown mail error');
         }
 
         try {
