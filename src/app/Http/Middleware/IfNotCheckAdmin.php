@@ -20,7 +20,7 @@ class IfNotCheckAdmin
     public function handle(Request $request, Closure $next)
     {
         if(!Auth::guard('admin')->check()) {
-            return redirect()->route('admin.login');
+            return redirect()->guest(route('admin.login'));
         }
         return $next($request);
     }

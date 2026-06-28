@@ -14,11 +14,11 @@ class RedirectIfNotAuthenticated
         $prefix = explode('/', $request->path())[0];
 
         if ($prefix === 'admin' && !Auth::guard('admin')->check()) {
-            return redirect()->route('admin.login');
+            return redirect()->guest(route('admin.login'));
         }
 
         if ($prefix === 'user' && !Auth::guard('web')->check()) {
-            return redirect()->route('login');
+            return redirect()->guest(route('login'));
         }
 
         return $next($request);
