@@ -129,6 +129,23 @@
                                                     </select>
                                                 </div>
                                             </div>
+                                            <div class="col-md-12 recurring-section" style="display: none; margin-top: 1rem;">
+                                                <div class="form-inner">
+                                                    <label class="form-label">{{ translate("Repetition") }}</label>
+                                                    <div class="input-group">
+                                                        <span class="input-group-text">{{ translate("Deliver campaigns in every") }}</span>
+                                                        <input type="number" name="repeat_time" id="repeat_time" class="form-control" placeholder="{{ translate("Amount of times you want this campaign to repeat") }}" min="1" value="{{ old('repeat_time', $campaign->repeat_time ?? 1) }}"/>
+                                                        <select id="repeat_format" class="form-select" name="repeat_format">
+                                                            <option value="" disabled>{{ translate("Select a repeat format") }}</option>
+                                                            @foreach(App\Enums\System\RepeatTimeEnum::getValues() as $value)
+                                                                @if($value !== 'none')
+                                                                    <option value="{{ $value }}" {{ old('repeat_format', $campaign->repeat_format?->value ?? 'daily') == $value ? 'selected' : '' }}>{{ ucfirst($value) }}</option>
+                                                                @endif
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -257,8 +274,19 @@ document.addEventListener('DOMContentLoaded', function() {
     const scheduleSection = document.querySelector('.schedule-section');
 
     campaignType.addEventListener('change', function() {
-        const show = this.value === 'scheduled' || this.value === 'recurring';
-        scheduleSection.style.display = show ? 'block' : 'none';
+        const isScheduled = this.value === 'scheduled' || this.value === 'recurring';
+        const isRecurring = this.value === 'recurring';
+        
+        scheduleSection.style.display = isScheduled ? 'block' : 'none';
+        scheduleSection.querySelector('input[type="datetime-local"]').required = isScheduled;
+        
+        const recurringSection = document.querySelector('.recurring-section');
+        if (recurringSection) {
+            recurringSection.style.display = isRecurring ? 'block' : 'none';
+            recurringSection.querySelector('input[name="repeat_time"]').required = isRecurring;
+            recurringSection.querySelector('select[name="repeat_format"]').required = isRecurring;
+            recurringSection.querySelector('select[name="repeat_format"]').disabled = !isRecurring;
+        }
     });
 
     document.querySelectorAll('.campaign-channel-card input').forEach(input => {
