@@ -76,16 +76,28 @@ class ProcessWhatsapp implements ShouldQueue
                 throw new Exception("WhatsApp gateway not found for log: {$whatsappLog->id}");
             }
 
-            // Check gateway type and route to appropriate handler
-            if ($gateway->type == WhatsAppGatewayTypeEnum::NODE->value) {
-                // Node/QR Code based WhatsApp
-                $this->processNodeMessage($whatsappLog, $gateway);
-            } elseif ($gateway->type == WhatsAppGatewayTypeEnum::CLOUD->value) {
-                // Cloud API (Meta Business) WhatsApp
-                $this->processCloudMessage($whatsappLog, $gateway);
+            $sendWhatsapp = new \App\Http\Utility\SendWhatsapp();
+            $dispatchLog = \App\Models\DispatchLog::where('communication_log_id', $whatsappLog->id)->first();
+
+            if ($dispatchLog) {
+                $message = $dispatchLog->message;
+                $contact = $dispatchLog->contact;
+                $to = $contact ? $contact->whatsapp : ($whatsappLog->message['to'] ?? '');
+                $body = $whatsappLog->message['message_body'] ?? '';
+
+                $success = $sendWhatsapp->send($gateway, $to, $dispatchLog, $message, $body);
+
+                if (!$success) {
+                    $this->markAsFailed("Failed to send WhatsApp message via Gateway");
+                    return;
+                }
             } else {
-                throw new Exception("Unknown gateway type: {$gateway->type}");
+                Log::warning("No dispatch log found for WhatsApp communication log", [
+                    'log_id' => $whatsappLog->id,
+                ]);
             }
+
+            $this->markAsSuccess();
 
         } catch (Exception $exception) {
             Log::error("ProcessWhatsapp job failed", [
@@ -102,66 +114,6 @@ class ProcessWhatsapp implements ShouldQueue
                 throw $exception;
             }
         }
-    }
-
-    /**
-     * Process message via Node/QR Code WhatsApp
-     */
-    private function processNodeMessage($whatsappLog, $gateway): void
-    {
-        $sendWhatsapp = new SendWhatsapp();
-
-        // Get dispatch log if available
-        $dispatchLog = DispatchLog::where('communication_log_id', $whatsappLog->id)->first();
-
-        if ($dispatchLog) {
-            // Use the dispatch-based sending with full features
-            $message = $dispatchLog->message;
-            $contact = $dispatchLog->contact;
-            $to = $contact ? $contact->whatsapp : ($whatsappLog->message['to'] ?? '');
-            $body = $whatsappLog->message['message_body'] ?? '';
-
-            $success = $sendWhatsapp->send($gateway, $to, $dispatchLog, $message, $body);
-
-            if (!$success) {
-                throw new Exception("Failed to send WhatsApp message via Node");
-            }
-        } else {
-            // Direct sending without dispatch log
-            Log::warning("No dispatch log found for WhatsApp communication log", [
-                'log_id' => $whatsappLog->id,
-            ]);
-        }
-
-        // Mark as success
-        $this->markAsSuccess();
-    }
-
-    /**
-     * Process message via Cloud API (Meta Business)
-     */
-    private function processCloudMessage($whatsappLog, $gateway): void
-    {
-        // Get dispatch log
-        $dispatchLog = DispatchLog::where('communication_log_id', $whatsappLog->id)->first();
-
-        if (!$dispatchLog) {
-            throw new Exception("Dispatch log not found for Cloud API message");
-        }
-
-        $message = $dispatchLog->message;
-        $contact = $dispatchLog->contact;
-        $to = $contact ? $contact->whatsapp : ($whatsappLog->message['to'] ?? '');
-        $body = $whatsappLog->message['message_body'] ?? '';
-
-        $success = SendWhatsapp::sendCloudApiMessages($dispatchLog, $gateway, $message, $body, $to);
-
-        if (!$success) {
-            throw new Exception("Failed to send WhatsApp message via Cloud API");
-        }
-
-        // Mark as success
-        $this->markAsSuccess();
     }
 
     /**
