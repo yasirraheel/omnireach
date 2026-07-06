@@ -652,7 +652,9 @@ class DispatchService
                     $messagesToSend     = $apiLogCount ?? $logs->count();
 
                     $dispatchType       = $scheduledAt ? DispatchTypeEnum::CAMPAIGN : DispatchTypeEnum::REGULAR;
-                    $delay              = $this->gatewayService->calculateDispatchDelay($gatewayId, $channel, $messagesToSend, $campaignId ? "campaign" : "regular", $userId);
+                    $totalDelay         = $this->gatewayService->calculateDispatchDelay($gatewayId, $channel, $messagesToSend, $campaignId ? "campaign" : "regular", $userId);
+                    $delayPerMessage    = $messagesToSend > 0 ? $totalDelay / $messagesToSend : 0;
+                    $cumulativeDelay    = 0;
 
                     $gateway            = Gateway::where('id', $gatewayId)->select(['bulk_contact_limit', 'type'])->first();
                     $typeConfig         = $gateway ? Arr::get($gatewayConfig, $gateway->type, []) : [];
@@ -664,18 +666,17 @@ class DispatchService
 
                          collect($logs)
                               ->groupBy('dispatch_unit_id')
-                              ->map(function ($unitLogs) use ($gatewayId, $dispatchId, $dispatchType, $userId, $channel, $pipe, &$batches, $maxBatchSize, $delay, &$logCounter) {
+                              ->map(function ($unitLogs) use ($gatewayId, $dispatchId, $dispatchType, $userId, $channel, $pipe, &$batches, $maxBatchSize, $delayPerMessage, &$cumulativeDelay, &$logCounter) {
 
                                    return $unitLogs->chunk($maxBatchSize)
                                                        ->filter(fn($chunk) => count($chunk) >= 1)
-                                                       ->map(function ($chunk) use ($gatewayId, $dispatchId, $dispatchType, $userId, $channel, $pipe, &$batches, $delay, &$logCounter) {
+                                                       ->map(function ($chunk) use ($gatewayId, $dispatchId, $dispatchType, $userId, $channel, $pipe, &$batches, $delayPerMessage, &$cumulativeDelay) {
 
-                                                            $logCounter++;
                                                             $unitIds = $chunk->keys()->all();
-                                                            $delay = $delay * $logCounter;
-                                                            $this->storeDispatchDelay($gatewayId, $channel->value, $dispatchId, $dispatchType, $delay, $userId);
+                                                            $cumulativeDelay += ($delayPerMessage * count($chunk));
+                                                            $this->storeDispatchDelay($gatewayId, $channel->value, $dispatchId, $dispatchType, $cumulativeDelay, $userId);
                                                             $job = ProcessDispatchLogBatch::dispatch($unitIds, $channel, $pipe, true)
-                                                                                               ->delay(now()->addSeconds($delay));
+                                                                                               ->delay(now()->addSeconds($cumulativeDelay));
                                                             $batches[] = $job;
                                                        });
                               })->all();

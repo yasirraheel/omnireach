@@ -160,7 +160,9 @@ class InsertDispatchLogs implements ShouldQueue
                                 $dispatchId         = $dispatchId !== 'none' ? $dispatchId : null;
                                 $messagesToSend     = $logs->count();
                                 $dispatchType       = $campaignId ? 'campaign' : 'regular';
-                                $delay              = $gatewayService->calculateDispatchDelay($gatewayId, $this->channel, $messagesToSend, $campaignId ? "campaign" : "regular", $userId);
+                                $totalDelay         = $gatewayService->calculateDispatchDelay($gatewayId, $this->channel, $messagesToSend, $campaignId ? "campaign" : "regular", $userId);
+                                $delayPerMessage    = $messagesToSend > 0 ? $totalDelay / $messagesToSend : 0;
+                                $cumulativeDelay    = 0;
 
                                 $gateway            = Gateway::where('id', $gatewayId)->select(['bulk_contact_limit', 'type'])->first();
                                 $typeConfig         = $gateway ? Arr::get($gatewayConfig, $gateway->type, []) : [];
@@ -173,16 +175,16 @@ class InsertDispatchLogs implements ShouldQueue
                                 if ($nativeBulkSupport && $bulkLimit > 1 && ($this->apiLogCount > 1 || $logCount > 1)) {
                                     collect($logs)
                                             ->groupBy('dispatch_unit_id')
-                                            ->map(function ($unitLogs) use ($dispatchService, $gatewayId, $dispatchId, $dispatchType, $userId, &$batches, $maxBatchSize, $delay, &$logCounter) {
+                                            ->map(function ($unitLogs) use ($dispatchService, $gatewayId, $dispatchId, $dispatchType, $userId, &$batches, $maxBatchSize, $delayPerMessage, &$cumulativeDelay, &$logCounter) {
 
                                                 return $unitLogs->chunk($maxBatchSize)
                                                                     ->filter(fn($chunk) => count($chunk) >= 1)
-                                                                    ->map(function ($chunk) use ($dispatchService, $gatewayId, $dispatchId, $dispatchType, $userId, &$batches, $delay, &$logCounter) {
-                                                                        $logCounter++;
+                                                                    ->map(function ($chunk) use ($dispatchService, $gatewayId, $dispatchId, $dispatchType, $userId, &$batches, $delayPerMessage, &$cumulativeDelay) {
+                                                                        
                                                                         $unitIds = $chunk->keys()->all();
-                                                                        $delay = $delay * $logCounter;
-                                                                        $dispatchService->storeDispatchDelay($gatewayId, $this->channel, $dispatchId, $dispatchType, $delay, $userId);
-                                                                        $job = ProcessDispatchLogBatch::dispatch($unitIds, $this->channel, $this->pipe, true)->delay(now()->addSeconds($delay));
+                                                                        $cumulativeDelay += ($delayPerMessage * count($chunk));
+                                                                        $dispatchService->storeDispatchDelay($gatewayId, $this->channel, $dispatchId, $dispatchType, $cumulativeDelay, $userId);
+                                                                        $job = ProcessDispatchLogBatch::dispatch($unitIds, $this->channel, $this->pipe, true)->delay(now()->addSeconds($cumulativeDelay));
                                                                                                                                                                 
                                                                         $batches[] = $job;
                                                                     });
@@ -191,13 +193,13 @@ class InsertDispatchLogs implements ShouldQueue
                                     
                                     $logs->chunk($maxBatchSize)
                                             ->filter(fn($chunk) => count($chunk) >= $minBatchSize)
-                                            ->map(function ($chunk) use ($gatewayId, $dispatchService, $dispatchId, $dispatchType, $userId, &$batches, $delay, &$logCounter) {
-                                                $logCounter++;
+                                            ->map(function ($chunk) use ($gatewayId, $dispatchService, $dispatchId, $dispatchType, $userId, &$batches, $delayPerMessage, &$cumulativeDelay) {
+                                                
                                                 $ids = collect($chunk)->pluck('id')->toArray();
-                                                $delay    = $delay * $logCounter;
-                                                $dispatchService->storeDispatchDelay($gatewayId, $this->channel, $dispatchId, $dispatchType, $delay, $userId);
+                                                $cumulativeDelay += ($delayPerMessage * count($chunk));
+                                                $dispatchService->storeDispatchDelay($gatewayId, $this->channel, $dispatchId, $dispatchType, $cumulativeDelay, $userId);
                                                 $job = ProcessDispatchLogBatch::dispatch($ids, $this->channel, $this->pipe, false)
-                                                                                    ->delay(now()->addSeconds($delay));
+                                                                                    ->delay(now()->addSeconds($cumulativeDelay));
                                                 
                                                 $batches[] = $job;
                                             })->all();
