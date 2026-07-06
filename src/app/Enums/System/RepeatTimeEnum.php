@@ -9,6 +9,7 @@ enum RepeatTimeEnum: string
      use EnumTrait;
 
      case NONE      = 'none';
+     case HOURLY    = 'hourly';
      case DAILY     = 'daily';
      case WEEKLY    = 'weekly';
      case MONTHLY   = 'monthly';
@@ -24,6 +25,7 @@ enum RepeatTimeEnum: string
      {
           return match($this) {
                self::NONE        => 'None',
+               self::HOURLY      => 'Hourly',
                self::DAILY       => 'Daily',
                self::WEEKLY      => 'Weekly',
                self::MONTHLY     => 'Monthly',
@@ -46,6 +48,7 @@ enum RepeatTimeEnum: string
      {
           $color = match($this) {
                self::NONE          => 'secondary',
+               self::HOURLY        => 'info',
                self::DAILY         => 'info',
                self::WEEKLY        => 'success',
                self::MONTHLY       => 'primary',

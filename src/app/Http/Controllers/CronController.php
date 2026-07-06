@@ -607,6 +607,7 @@ class CronController extends Controller
             $repeatTime = $campaign->repeat_time;
             
             match ($campaign->repeat_format->value) {
+                RepeatTimeEnum::HOURLY->value => $scheduleAt->addHours($repeatTime),
                 RepeatTimeEnum::DAILY->value => $scheduleAt->addDays($repeatTime),
                 RepeatTimeEnum::WEEKLY->value => $scheduleAt->addWeeks($repeatTime),
                 RepeatTimeEnum::MONTHLY->value => $scheduleAt->addMonths($repeatTime),

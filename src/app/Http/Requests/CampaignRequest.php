@@ -40,7 +40,7 @@ class CampaignRequest extends FormRequest
             'smsType'        => 'required_if:channel,sms',
             'logic'          => 'required_if:group_logic,true',
             'attribute_name' => 'required_if:group_logic,true',
-            'repeat_format'  => 'required|in:year,month,day',
+            'repeat_format'  => 'required|in:year,month,day,hourly,daily,weekly,monthly,yearly',
         ];
 
         if(request()->input("cloud_api") == "true") {
