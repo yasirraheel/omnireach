@@ -204,8 +204,51 @@ class CampaignDispatchService
             ->count();
 
         if ($pending === 0 && $campaign->status === UnifiedCampaignStatus::RUNNING) {
-            $campaign->markAsCompleted();
+            if ($campaign->type === \App\Enums\Campaign\CampaignType::RECURRING && !empty($campaign->recurring_config)) {
+                $this->rescheduleCampaign($campaign);
+            } else {
+                $campaign->markAsCompleted();
+            }
         }
+    }
+
+    /**
+     * Reschedule a recurring campaign
+     */
+    protected function rescheduleCampaign(UnifiedCampaign $campaign): void
+    {
+        $config = $campaign->recurring_config;
+        $repeatTime = (int) ($config['repeat_time'] ?? 1);
+        $repeatFormat = $config['repeat_format'] ?? 'day';
+
+        $scheduleAt = \Carbon\Carbon::parse($campaign->schedule_at ?? now());
+        match ($repeatFormat) {
+            \App\Enums\System\RepeatTimeEnum::HOURLY->value => $scheduleAt->addHours($repeatTime),
+            \App\Enums\System\RepeatTimeEnum::DAILY->value => $scheduleAt->addDays($repeatTime),
+            \App\Enums\System\RepeatTimeEnum::WEEKLY->value => $scheduleAt->addWeeks($repeatTime),
+            \App\Enums\System\RepeatTimeEnum::MONTHLY->value => $scheduleAt->addMonths($repeatTime),
+            \App\Enums\System\RepeatTimeEnum::YEARLY->value => $scheduleAt->addYears($repeatTime),
+            default => $scheduleAt->addDays($repeatTime),
+        };
+
+        // Reset all dispatches to scheduled
+        $campaign->dispatches()->update([
+            'status' => DispatchStatus::PENDING,
+            'sent_at' => null,
+            'delivered_at' => null,
+            'error_message' => null,
+            'retry_count' => 0,
+        ]);
+
+        // Reset campaign stats and mark as scheduled
+        $campaign->update([
+            'schedule_at' => $scheduleAt,
+            'status' => UnifiedCampaignStatus::SCHEDULED,
+            'processed_contacts' => 0,
+            'stats' => [],
+        ]);
+
+        \Illuminate\Support\Facades\Log::info("Recurring campaign {$campaign->id} rescheduled to {$scheduleAt->toDateTimeString()}");
     }
 
     /**
