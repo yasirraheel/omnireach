@@ -88,14 +88,5 @@
     font-weight: 500;
 }
 
-/* Fix Dropdown Overflow in Tables */
-.card,
-.card-body,
-.table-container {
-    overflow: visible !important;
-}
-.table-container .dropdown-menu {
-    z-index: 1050;
-    min-width: 180px;
-}
+
 </style>
