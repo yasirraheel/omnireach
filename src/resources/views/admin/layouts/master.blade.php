@@ -645,8 +645,6 @@
             }
         }
     });
-    });
-            });
 
             // Ensure layout shifts correctly if a sub-menu is automatically shown
             document.addEventListener('DOMContentLoaded', function() {
