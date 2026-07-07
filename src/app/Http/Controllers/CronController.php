@@ -493,9 +493,10 @@ class CronController extends Controller
                 ->get();
 
             foreach ($campaigns as $campaign) {
-                $isProcessed = $campaign->dispatchLogs->contains(fn($log) => in_array($log->status->value, [
-                    CommunicationStatusEnum::DELIVERED->value,
-                    CommunicationStatusEnum::FAIL->value
+                $isProcessed = !$campaign->dispatchLogs->contains(fn($log) => in_array($log->status->value, [
+                    CommunicationStatusEnum::PENDING->value,
+                    CommunicationStatusEnum::SCHEDULE->value,
+                    CommunicationStatusEnum::PROCESSING->value
                 ]));
 
                 if ($isProcessed) {
@@ -522,6 +523,7 @@ class CronController extends Controller
             $validStatuses = [
                 CommunicationStatusEnum::DELIVERED->value,
                 CommunicationStatusEnum::FAIL->value,
+                CommunicationStatusEnum::SUCCESS->value,
             ];
 
             foreach ($campaigns as $campaign) {
