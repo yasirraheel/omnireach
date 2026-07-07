@@ -123,6 +123,14 @@ class UnifiedCampaignController extends Controller
         ]);
 
         try {
+            $recurringConfig = null;
+            if ($request->input('type') === 'recurring') {
+                $recurringConfig = [
+                    'repeat_time' => $request->input('repeat_time'),
+                    'repeat_format' => $request->input('repeat_format'),
+                ];
+            }
+
             $campaign = $this->campaignService->create([
                 'name' => $request->input('name'),
                 'description' => $request->input('description'),
@@ -133,7 +141,7 @@ class UnifiedCampaignController extends Controller
                 'channel_priority' => $request->input('channel_priority'),
                 'schedule_at' => $request->input('schedule_at'),
                 'timezone' => $request->input('timezone', 'UTC'),
-                'recurring_config' => $request->input('recurring_config'),
+                'recurring_config' => $recurringConfig,
             ]);
 
             $notify[] = ['success', translate('Campaign created successfully')];
