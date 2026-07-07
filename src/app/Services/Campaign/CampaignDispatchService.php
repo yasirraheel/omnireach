@@ -53,6 +53,8 @@ class CampaignDispatchService
                 return true;
             }
 
+            // Ensure stats are updated even if it failed gracefully without throwing
+            $this->updateCampaignStats($dispatch->campaign, $dispatch->channel->value, 'failed');
             return false;
         } catch (\Exception $e) {
             Log::error('Dispatch error: ' . $e->getMessage(), [
