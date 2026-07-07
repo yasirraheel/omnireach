@@ -82,8 +82,17 @@ class ProcessUnifiedCampaignJob implements ShouldQueue
         foreach ($dispatches as $dispatch) {
             try {
                 $dispatchService->processDispatch($dispatch);
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 Log::error("Error processing dispatch {$dispatch->id}: " . $e->getMessage());
+                // Fallback: forcefully mark as failed if it wasn't already
+                $dispatch->markAsFailed("Fatal error: " . $e->getMessage());
+                
+                // Update stats if possible (might fail if relations are missing, so wrap in try-catch)
+                try {
+                    $dispatchService->updateCampaignStats($dispatch->campaign, $dispatch->channel->value, 'failed');
+                } catch (\Throwable $innerE) {
+                    Log::error("Failed to update campaign stats after dispatch fatal error: " . $innerE->getMessage());
+                }
             }
         }
 

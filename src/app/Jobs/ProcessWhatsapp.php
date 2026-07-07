@@ -99,7 +99,7 @@ class ProcessWhatsapp implements ShouldQueue
 
             $this->markAsSuccess();
 
-        } catch (Exception $exception) {
+        } catch (\Throwable $exception) {
             Log::error("ProcessWhatsapp job failed", [
                 'log_id' => $this->whatsappLog->id ?? 'unknown',
                 'error' => $exception->getMessage(),

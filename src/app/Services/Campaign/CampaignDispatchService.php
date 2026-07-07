@@ -56,7 +56,7 @@ class CampaignDispatchService
             // Ensure stats are updated even if it failed gracefully without throwing
             $this->updateCampaignStats($dispatch->campaign, $dispatch->channel->value, 'failed');
             return false;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error('Dispatch error: ' . $e->getMessage(), [
                 'dispatch_id' => $dispatch->id,
                 'campaign_id' => $dispatch->campaign_id,
@@ -97,7 +97,7 @@ class CampaignDispatchService
             }
 
             return $success;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $dispatch->markAsFailed($e->getMessage());
             return false;
         }
@@ -134,7 +134,7 @@ class CampaignDispatchService
             }
 
             return $success;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $dispatch->markAsFailed($e->getMessage());
             return false;
         }
@@ -176,7 +176,7 @@ class CampaignDispatchService
             }
 
             return $success;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $dispatch->markAsFailed($e->getMessage());
             return false;
         }
