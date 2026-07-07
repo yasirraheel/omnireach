@@ -70,8 +70,9 @@ class ProcessUnifiedCampaignJob implements ShouldQueue
                 ->count();
 
             if ($pending === 0) {
-                $campaign->markAsCompleted();
-                Log::info("Campaign {$this->campaignId} completed");
+                // Let the CampaignDispatchService handle completion/rescheduling via the checkCampaignCompletion method
+                // We shouldn't force markAsCompleted here, because it will break recurring campaigns.
+                Log::info("Campaign {$this->campaignId} has no more dispatches to process.");
             }
 
             return;
