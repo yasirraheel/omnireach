@@ -77,17 +77,6 @@ class ProcessUnifiedCampaigns extends Command
     }
 
     /**
-     * Process a single campaign
-     */
-    protected function processCampaign(UnifiedCampaign $campaign, int $batchSize): void
-    {
-        $this->line("Processing campaign: {$campaign->name} (ID: {$campaign->id})");
-
-        // Check if there are pending dispatches
-        $pendingCount = $campaign->dispatches()
-            ->whereIn('status', ['pending', 'queued'])
-            ->count();
-
 <?php
 
 namespace App\Console\Commands;
