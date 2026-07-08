@@ -184,33 +184,71 @@ class ProcessUnifiedCampaigns extends Command
     }
 
     /**
-     * Process a single campaign
+     * Process a single campaign synchronously (no queue dependency)
+     * This avoids the queue worker dying mid-job and leaving dispatches stuck.
      */
     protected function processCampaign(UnifiedCampaign $campaign, int $batchSize): void
     {
         $this->line("Processing campaign: {$campaign->name} (ID: {$campaign->id})");
 
-        // Count pending (not currently being processed)
-        $pendingCount = $campaign->dispatches()
-            ->whereIn('status', ['pending', 'queued'])
-            ->count();
+        $pendingCount    = $campaign->dispatches()->whereIn('status', ['pending', 'queued'])->count();
+        $processingCount = $campaign->dispatches()->where('status', 'processing')->count();
 
-        $processingCount = $campaign->dispatches()
-            ->where('status', 'processing')
-            ->count();
-
-        // If nothing left to do, trigger completion
+        // Nothing left — complete or reschedule
         if ($pendingCount === 0 && $processingCount === 0) {
             $this->triggerCampaignCompletion($campaign);
             return;
         }
 
-        // If there are pending dispatches, fire the processing job
-        if ($pendingCount > 0) {
-            ProcessUnifiedCampaignJob::dispatch($campaign->id, $batchSize);
-            $this->line("Dispatched processing job for campaign {$campaign->id} ({$pendingCount} pending)");
-        } else {
-            $this->line("Campaign {$campaign->id} has {$processingCount} dispatches still processing — will check next run");
+        if ($pendingCount === 0) {
+            $this->line("Campaign {$campaign->id} has {$processingCount} dispatches still processing — will re-check next cron tick");
+            return;
         }
+
+        // Process up to $batchSize dispatches synchronously with a per-dispatch timeout
+        $dispatches = $campaign->dispatches()
+            ->readyToProcess()
+            ->limit($batchSize)
+            ->get();
+
+        $dispatchService = app(CampaignDispatchService::class);
+
+        foreach ($dispatches as $dispatch) {
+            // Set a 25-second alarm so a hanging send() is killed
+            $timeout = 25;
+            $timedOut = false;
+
+            if (function_exists('pcntl_signal') && function_exists('pcntl_alarm')) {
+                pcntl_signal(SIGALRM, function () use (&$timedOut, $dispatch) {
+                    $timedOut = true;
+                    // Can't safely throw here in all PHP builds, so just set the flag
+                });
+                pcntl_alarm($timeout);
+            }
+
+            try {
+                $dispatchService->processDispatch($dispatch);
+            } catch (\Throwable $e) {
+                Log::error("Dispatch {$dispatch->id} error: " . $e->getMessage());
+                $dispatch->markAsFailed('Error: ' . $e->getMessage());
+                try {
+                    $dispatchService->updateCampaignStats($dispatch->campaign, $dispatch->channel->value, 'failed');
+                } catch (\Throwable $ignored) {}
+            } finally {
+                if (function_exists('pcntl_alarm')) {
+                    pcntl_alarm(0); // Cancel alarm
+                }
+            }
+
+            if ($timedOut) {
+                Log::warning("Dispatch {$dispatch->id} timed out after {$timeout}s — marking as failed");
+                $dispatch->markAsFailed("Timed out after {$timeout}s — WhatsApp group may be restricted");
+                try {
+                    $dispatchService->updateCampaignStats($dispatch->campaign, $dispatch->channel->value, 'failed');
+                } catch (\Throwable $ignored) {}
+            }
+        }
+
+        $this->line("Processed {$dispatches->count()} dispatches for campaign {$campaign->id}");
     }
 }
