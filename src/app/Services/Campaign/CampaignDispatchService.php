@@ -32,7 +32,9 @@ class CampaignDispatchService
             $gateway = $dispatch->gateway;
 
             if (!$message || !$contact || !$gateway) {
-                $dispatch->markAsFailed('Missing required data: ' . (!$message ? 'message' : (!$contact ? 'contact' : 'gateway')));
+                $err = 'Missing required data: ' . (!$message ? 'message' : (!$contact ? 'contact' : 'gateway'));
+                $dispatch->markAsFailed($err);
+                $this->updateCampaignStats($dispatch->campaign, $dispatch->channel->value, 'failed');
                 return false;
             }
 
@@ -48,14 +50,26 @@ class CampaignDispatchService
             };
 
             if ($result) {
-                $dispatch->markAsSent();
+                // For WhatsApp groups: treat SENT as terminal success (no delivery receipt expected)
+                if ($dispatch->channel === CampaignChannel::WHATSAPP) {
+                    // If not already marked as sent by sendWhatsApp(), mark it now
+                    if ($dispatch->fresh()->status === DispatchStatus::PROCESSING) {
+                        $dispatch->markAsSent();
+                    }
+                }
                 $this->updateCampaignStats($dispatch->campaign, $dispatch->channel->value, 'sent');
                 return true;
             }
 
-            // Ensure stats are updated even if it failed gracefully without throwing
+            // result is false — ensure dispatch is marked FAILED (sendWhatsApp/sendSms/sendEmail
+            // may have already called markAsFailed, but guard in case they didn't)
+            $fresh = $dispatch->fresh();
+            if ($fresh && $fresh->status === DispatchStatus::PROCESSING) {
+                $dispatch->markAsFailed('Send returned false');
+            }
             $this->updateCampaignStats($dispatch->campaign, $dispatch->channel->value, 'failed');
             return false;
+
         } catch (\Throwable $e) {
             Log::error('Dispatch error: ' . $e->getMessage(), [
                 'dispatch_id' => $dispatch->id,
@@ -82,21 +96,15 @@ class CampaignDispatchService
 
         if (empty($phone)) {
             $dispatch->markAsFailed('No SMS phone number for contact');
+            $this->updateCampaignStats($dispatch->campaign, $dispatch->channel->value, 'failed');
             return false;
         }
 
         try {
             $sendSMS  = new SendSMS();
             $provider = strtolower($gateway->type);
-
-            // SendSMS::send returns bool; pass null for dispatchLog so it won't try to update a DispatchLog record
-            $success = $sendSMS->send($provider, $phone, $gateway, null, $content);
-
-            if (!$success) {
-                $dispatch->markAsFailed('SMS sending failed via provider: ' . $provider);
-            }
-
-            return $success;
+            $success  = $sendSMS->send($provider, $phone, $gateway, null, $content);
+            return (bool) $success;
         } catch (\Throwable $e) {
             $dispatch->markAsFailed($e->getMessage());
             return false;
@@ -117,23 +125,17 @@ class CampaignDispatchService
 
         if (empty($email)) {
             $dispatch->markAsFailed('No email address for contact');
+            $this->updateCampaignStats($dispatch->campaign, $dispatch->channel->value, 'failed');
             return false;
         }
 
         $subject = $message->getPersonalizedSubject($contact);
 
         try {
-            $sendMail = new SendMail();
+            $sendMail    = new SendMail();
             $attachments = $message->hasAttachments() ? $message->attachments : null;
-
-            // SendMail::send returns bool; pass null for dispatchLog
-            $success = $sendMail->send($gateway, $email, $subject, $content, null, $attachments);
-
-            if (!$success) {
-                $dispatch->markAsFailed('Email sending failed');
-            }
-
-            return $success;
+            $success     = $sendMail->send($gateway, $email, $subject, $content, null, $attachments);
+            return (bool) $success;
         } catch (\Throwable $e) {
             $dispatch->markAsFailed($e->getMessage());
             return false;
@@ -154,25 +156,28 @@ class CampaignDispatchService
 
         if (empty($phone)) {
             $dispatch->markAsFailed('No WhatsApp number for contact');
+            $this->updateCampaignStats($dispatch->campaign, $dispatch->channel->value, 'failed');
             return false;
         }
 
         try {
             $sendWhatsapp = new SendWhatsapp();
 
-            // Build a minimal Message-like object for SendWhatsapp
-            // SendWhatsapp::send expects: Gateway, string|array $to, DispatchLog|Collection $dispatchLog, Message $message, string $body
-            // We create a fake Message model-like object from campaign message data
-            $fakeMessage = new Message();
-            $fakeMessage->message    = $content;
-            $fakeMessage->file_info  = $message->hasAttachments() ? ['attachments' => $message->attachments] : null;
-            $fakeMessage->subject    = $message->subject ?? null;
+            $fakeMessage             = new Message();
+            $fakeMessage->message   = $content;
+            $fakeMessage->file_info = $message->hasAttachments() ? ['attachments' => $message->attachments] : null;
+            $fakeMessage->subject   = $message->subject ?? null;
 
-            // SendWhatsapp::send returns bool; pass null for dispatchLog so it won't try to update DispatchLog
+            // For WhatsApp groups there is no delivery receipt, so treat a successful send() as terminal success.
+            // send() returns bool — true means the API accepted the message.
             $success = $sendWhatsapp->send($gateway, $phone, null, $fakeMessage, $content);
 
-            if (!$success) {
-                $dispatch->markAsFailed('WhatsApp sending failed');
+            if ($success) {
+                // Immediately mark as SENT — we will never get a delivery webhook for groups
+                $dispatch->markAsSent();
+            } else {
+                // Hard fail — no retries for WhatsApp groups
+                $dispatch->markAsFailed('WhatsApp send returned false — message rejected by gateway');
             }
 
             return $success;
@@ -199,6 +204,16 @@ class CampaignDispatchService
      */
     protected function checkCampaignCompletion(UnifiedCampaign $campaign): void
     {
+        // Force-fail any dispatches that have been stuck in PROCESSING for more than 5 minutes
+        // This handles cases where a send() call hangs or returns without updating status
+        $campaign->dispatches()
+            ->where('status', DispatchStatus::PROCESSING)
+            ->where('updated_at', '<', now()->subMinutes(5))
+            ->update([
+                'status'        => DispatchStatus::FAILED,
+                'error_message' => 'Timed out in processing state',
+            ]);
+
         $pending = $campaign->dispatches()
             ->whereIn('status', [DispatchStatus::PENDING, DispatchStatus::QUEUED, DispatchStatus::PROCESSING])
             ->count();
@@ -217,38 +232,40 @@ class CampaignDispatchService
      */
     protected function rescheduleCampaign(UnifiedCampaign $campaign): void
     {
-        $config = $campaign->recurring_config;
+        $config     = $campaign->recurring_config;
         $repeatTime = (int) ($config['repeat_time'] ?? 1);
-        $repeatFormat = $config['repeat_format'] ?? 'day';
+        $repeatFormat = $config['repeat_format'] ?? 'daily';
 
         $scheduleAt = \Carbon\Carbon::parse($campaign->schedule_at ?? now());
+
+        // Add the correct interval based on the stored repeat_format value
         match ($repeatFormat) {
-            \App\Enums\System\RepeatTimeEnum::HOURLY->value => $scheduleAt->addHours($repeatTime),
-            \App\Enums\System\RepeatTimeEnum::DAILY->value => $scheduleAt->addDays($repeatTime),
-            \App\Enums\System\RepeatTimeEnum::WEEKLY->value => $scheduleAt->addWeeks($repeatTime),
-            \App\Enums\System\RepeatTimeEnum::MONTHLY->value => $scheduleAt->addMonths($repeatTime),
-            \App\Enums\System\RepeatTimeEnum::YEARLY->value => $scheduleAt->addYears($repeatTime),
-            default => $scheduleAt->addDays($repeatTime),
+            'hourly'  => $scheduleAt->addHours($repeatTime),
+            'daily'   => $scheduleAt->addDays($repeatTime),
+            'weekly'  => $scheduleAt->addWeeks($repeatTime),
+            'monthly' => $scheduleAt->addMonths($repeatTime),
+            'yearly'  => $scheduleAt->addYears($repeatTime),
+            default   => $scheduleAt->addDays($repeatTime),
         };
 
-        // Reset all dispatches to scheduled
+        // Reset ALL dispatches (including failed/stuck ones) back to PENDING
         $campaign->dispatches()->update([
-            'status' => DispatchStatus::PENDING,
-            'sent_at' => null,
+            'status'       => DispatchStatus::PENDING,
+            'sent_at'      => null,
             'delivered_at' => null,
             'error_message' => null,
-            'retry_count' => 0,
+            'retry_count'  => 0,
         ]);
 
-        // Reset campaign stats and mark as scheduled
+        // Reset campaign stats and set as scheduled for next run
         $campaign->update([
-            'schedule_at' => $scheduleAt,
-            'status' => UnifiedCampaignStatus::SCHEDULED,
-            'processed_contacts' => 0,
-            'stats' => [],
+            'schedule_at'         => $scheduleAt,
+            'status'              => UnifiedCampaignStatus::SCHEDULED,
+            'processed_contacts'  => 0,
+            'stats'               => [],
         ]);
 
-        \Illuminate\Support\Facades\Log::info("Recurring campaign {$campaign->id} rescheduled to {$scheduleAt->toDateTimeString()}");
+        Log::info("Recurring campaign {$campaign->id} rescheduled to {$scheduleAt->toDateTimeString()}");
     }
 
     /**
