@@ -167,13 +167,14 @@ class CampaignDispatchService
         }
 
         try {
-            // Anti-ban delay: Sleep for a random gap (3 to 7 seconds) between WhatsApp sends to prevent rate limits and account bans
-            $minDelay = (int) ($gateway->per_message_min_delay ?? 3);
-            $maxDelay = (int) ($gateway->per_message_max_delay ?? 7);
-            $sleepSec = rand(max(2, $minDelay), max(3, $maxDelay));
-            sleep($sleepSec);
-
             $sendWhatsapp = new SendWhatsapp();
+
+            // Calculate and apply exact anti-ban delay configured on the Gateway
+            $delayMs = $sendWhatsapp->calculateAntiBanDelay($gateway);
+            $sleepSec = (int) ceil($delayMs / 1000);
+            if ($sleepSec > 0) {
+                sleep($sleepSec);
+            }
 
             $fakeMessage             = new Message();
             $fakeMessage->message   = $content;

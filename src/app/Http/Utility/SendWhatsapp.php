@@ -58,7 +58,7 @@ class SendWhatsapp
      * @param Gateway $gateway
      * @return int Delay in milliseconds
      */
-    private function calculateAntiBanDelay(Gateway $gateway): int
+    public function calculateAntiBanDelay(Gateway $gateway): int
     {
         $gatewayId = $gateway->id;
 
