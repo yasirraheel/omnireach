@@ -35,33 +35,44 @@ class ProcessUnifiedCampaigns extends Command
      */
     public function handle(): int
     {
-        $batchSize = (int) $this->option('batch');
-        $limit     = (int) $this->option('limit');
+        $lock = \Illuminate\Support\Facades\Cache::lock('campaigns_process_lock', 55);
 
-        $this->info('Processing unified campaigns...');
-
-        // Step 0: Proactively clear any dispatches stuck in PROCESSING for > 2 minutes
-        // This handles cases where a send() call hangs or the queue worker crashed mid-job
-        $this->clearStuckProcessingDispatches();
-
-        // Step 1: Check for scheduled campaigns that should start
-        $this->startScheduledCampaigns();
-
-        // Step 2: Process running campaigns
-        $runningCampaigns = UnifiedCampaign::running()
-            ->orderBy('started_at', 'asc')
-            ->limit($limit)
-            ->get();
-
-        $this->line("Found {$runningCampaigns->count()} running campaigns");
-
-        foreach ($runningCampaigns as $campaign) {
-            $this->processCampaign($campaign, $batchSize);
+        if (!$lock->get()) {
+            $this->info('Another instance of campaigns:process is currently running. Skipping execution.');
+            return Command::SUCCESS;
         }
 
-        $this->info('Campaign processing completed');
+        try {
+            $batchSize = (int) $this->option('batch');
+            $limit     = (int) $this->option('limit');
 
-        return Command::SUCCESS;
+            $this->info('Processing unified campaigns...');
+
+            // Step 0: Proactively clear any dispatches stuck in PROCESSING for > 2 minutes
+            // This handles cases where a send() call hangs or the queue worker crashed mid-job
+            $this->clearStuckProcessingDispatches();
+
+            // Step 1: Check for scheduled campaigns that should start
+            $this->startScheduledCampaigns();
+
+            // Step 2: Process running campaigns
+            $runningCampaigns = UnifiedCampaign::running()
+                ->orderBy('started_at', 'asc')
+                ->limit($limit)
+                ->get();
+
+            $this->line("Found {$runningCampaigns->count()} running campaigns");
+
+            foreach ($runningCampaigns as $campaign) {
+                $this->processCampaign($campaign, $batchSize);
+            }
+
+            $this->info('Campaign processing completed');
+
+            return Command::SUCCESS;
+        } finally {
+            $lock->release();
+        }
     }
 
     /**
