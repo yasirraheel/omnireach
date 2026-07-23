@@ -884,6 +884,7 @@ Route::middleware([
                 Route::post('/cancel/{id}', 'cancel')->name('cancel');
                 Route::post('/duplicate/{id}', 'duplicate')->name('duplicate');
                 Route::get('/ajax/channel-distribution', 'getChannelDistribution')->name('channel-distribution');
+                Route::get('/run-log/{id}/{runId}', 'getRunLogDetails')->name('run-log');
             });
 
         // Campaign Intelligence

@@ -100,6 +100,14 @@ class UnifiedCampaign extends Model
     }
 
     /**
+     * Get execution run logs for this campaign
+     */
+    public function runs(): HasMany
+    {
+        return $this->hasMany(UnifiedCampaignRun::class, 'campaign_id')->orderBy('run_number', 'desc');
+    }
+
+    /**
      * Get A/B test for this campaign
      */
     public function abTest(): HasOne

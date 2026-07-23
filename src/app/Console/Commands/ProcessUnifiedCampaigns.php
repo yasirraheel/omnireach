@@ -141,6 +141,9 @@ class ProcessUnifiedCampaigns extends Command
                 default   => $scheduleAt->addDays($repeatTime),
             };
 
+            $dispatchService = app(CampaignDispatchService::class);
+            $dispatchService->recordRunHistory($campaign, $scheduleAt);
+
             // Reset all dispatches for next run
             $campaign->dispatches()->update([
                 'status'        => DispatchStatus::PENDING,
@@ -160,6 +163,9 @@ class ProcessUnifiedCampaigns extends Command
             $this->line("Campaign {$campaign->id} rescheduled to {$scheduleAt->toDateTimeString()}");
             Log::info("Recurring campaign {$campaign->id} auto-rescheduled to {$scheduleAt->toDateTimeString()}");
         } else {
+            $dispatchService = app(CampaignDispatchService::class);
+            $dispatchService->recordRunHistory($campaign, null);
+
             $campaign->markAsCompleted();
             $this->line("Campaign {$campaign->id} marked as completed");
         }

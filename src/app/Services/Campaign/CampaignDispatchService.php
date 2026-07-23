@@ -96,7 +96,6 @@ class CampaignDispatchService
 
         if (empty($phone)) {
             $dispatch->markAsFailed('No SMS phone number for contact');
-            $this->updateCampaignStats($dispatch->campaign, $dispatch->channel->value, 'failed');
             return false;
         }
 
@@ -125,7 +124,6 @@ class CampaignDispatchService
 
         if (empty($email)) {
             $dispatch->markAsFailed('No email address for contact');
-            $this->updateCampaignStats($dispatch->campaign, $dispatch->channel->value, 'failed');
             return false;
         }
 
@@ -156,7 +154,6 @@ class CampaignDispatchService
 
         if (empty($phone)) {
             $dispatch->markAsFailed('No WhatsApp number for contact');
-            $this->updateCampaignStats($dispatch->campaign, $dispatch->channel->value, 'failed');
             return false;
         }
 
@@ -228,6 +225,49 @@ class CampaignDispatchService
     }
 
     /**
+     * Record execution run history snapshot for a campaign (especially recurring)
+     */
+    public function recordRunHistory(UnifiedCampaign $campaign, ?\Carbon\Carbon $nextScheduleAt = null): void
+    {
+        try {
+            $history = $campaign->dispatches()->with('contact')->get()->map(function ($d) {
+                return [
+                    'id' => $d->id,
+                    'contact_name' => $d->contact?->name ?? 'Contact #' . $d->contact_id,
+                    'contact_address' => $d->getContactAddress() ?? $d->contact?->whatsapp_contact ?? $d->contact?->sms_contact ?? $d->contact?->email_contact ?? '',
+                    'channel' => is_object($d->channel) ? $d->channel->value : (string) $d->channel,
+                    'status' => is_object($d->status) ? $d->status->value : (string) $d->status,
+                    'error_message' => $d->error_message,
+                    'sent_at' => $d->sent_at?->toDateTimeString(),
+                    'delivered_at' => $d->delivered_at?->toDateTimeString(),
+                    'updated_at' => $d->updated_at?->toDateTimeString(),
+                ];
+            })->toArray();
+
+            $runNumber = \App\Models\UnifiedCampaignRun::where('campaign_id', $campaign->id)->count() + 1;
+            $overallStats = $campaign->getOverallStats();
+
+            \App\Models\UnifiedCampaignRun::create([
+                'campaign_id' => $campaign->id,
+                'run_number' => $runNumber,
+                'status' => 'completed',
+                'started_at' => $campaign->started_at ?? now(),
+                'completed_at' => now(),
+                'scheduled_at' => $campaign->schedule_at,
+                'next_schedule_at' => $nextScheduleAt,
+                'total_contacts' => $campaign->total_contacts,
+                'processed_contacts' => $campaign->processed_contacts,
+                'sent_count' => $overallStats['sent'] ?? 0,
+                'failed_count' => $overallStats['failed'] ?? 0,
+                'delivered_count' => $overallStats['delivered'] ?? 0,
+                'dispatch_history' => $history,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error("Failed to record campaign run history for campaign {$campaign->id}: " . $e->getMessage());
+        }
+    }
+
+    /**
      * Reschedule a recurring campaign
      */
     protected function rescheduleCampaign(UnifiedCampaign $campaign): void
@@ -248,16 +288,19 @@ class CampaignDispatchService
             default   => $scheduleAt->addDays($repeatTime),
         };
 
-        // Reset ALL dispatches (including failed/stuck ones) back to PENDING
+        // 1. Record execution run history snapshot BEFORE resetting dispatches and stats
+        $this->recordRunHistory($campaign, $scheduleAt);
+
+        // 2. Reset ALL dispatches back to PENDING for next run
         $campaign->dispatches()->update([
-            'status'       => DispatchStatus::PENDING,
-            'sent_at'      => null,
-            'delivered_at' => null,
+            'status'        => DispatchStatus::PENDING,
+            'sent_at'       => null,
+            'delivered_at'  => null,
             'error_message' => null,
-            'retry_count'  => 0,
+            'retry_count'   => 0,
         ]);
 
-        // Reset campaign stats and set as scheduled for next run
+        // 3. Reset campaign stats and set as scheduled for next run
         $campaign->update([
             'schedule_at'         => $scheduleAt,
             'status'              => UnifiedCampaignStatus::SCHEDULED,

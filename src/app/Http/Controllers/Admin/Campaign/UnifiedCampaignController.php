@@ -320,19 +320,48 @@ class UnifiedCampaignController extends Controller
     public function show(string $uid): View
     {
         $campaign = UnifiedCampaign::where('uid', $uid)
-            ->with(['contactGroup', 'messages.gateway', 'dispatches'])
+            ->with(['contactGroup', 'messages.gateway', 'dispatches', 'runs'])
             ->firstOrFail();
 
         $title = $campaign->name;
 
         // Get statistics
         $statistics = $this->campaignService->getStatistics($campaign);
+        $runs = $campaign->runs()->paginate(10);
 
         return view('admin.campaign.show', compact(
             'title',
             'campaign',
-            'statistics'
+            'statistics',
+            'runs'
         ));
+    }
+
+    /**
+     * Get execution run log details for AJAX modal
+     */
+    public function getRunLogDetails(string $uid, int $runId): JsonResponse
+    {
+        $campaign = UnifiedCampaign::where('uid', $uid)->firstOrFail();
+        $run = \App\Models\UnifiedCampaignRun::where('campaign_id', $campaign->id)->where('id', $runId)->firstOrFail();
+
+        return response()->json([
+            'status' => true,
+            'data' => [
+                'run_number' => $run->run_number,
+                'status' => $run->status,
+                'started_at' => $run->started_at?->format('Y-m-d H:i:s'),
+                'completed_at' => $run->completed_at?->format('Y-m-d H:i:s'),
+                'scheduled_at' => $run->scheduled_at?->format('Y-m-d H:i:s'),
+                'next_schedule_at' => $run->next_schedule_at?->format('Y-m-d H:i:s'),
+                'total_contacts' => $run->total_contacts,
+                'processed_contacts' => $run->processed_contacts,
+                'sent_count' => $run->sent_count,
+                'failed_count' => $run->failed_count,
+                'delivered_count' => $run->delivered_count,
+                'dispatch_history' => $run->dispatch_history ?? [],
+            ]
+        ]);
     }
 
     /**

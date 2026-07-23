@@ -443,6 +443,7 @@ Route::middleware([
                 Route::get('/ajax/channel-distribution', 'getChannelDistribution')->name('channel-distribution');
                 Route::get('/{uid}/statistics', 'getStatistics')->name('statistics');
                 Route::get('/{uid}/dispatches', 'getDispatches')->name('dispatches');
+                Route::get('/{uid}/run-log/{runId}', 'getRunLogDetails')->name('run-log');
             });
 
             // Campaign Intelligence

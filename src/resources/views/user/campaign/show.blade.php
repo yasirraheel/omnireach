@@ -225,6 +225,79 @@
                     </div>
                 </div>
                 @endif
+
+                <!-- Recurring Execution History Card -->
+                @if($campaign->type->value === 'recurring' || (isset($runs) && $runs->count() > 0))
+                <div class="card mt-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4 class="card-title mb-0">
+                            <i class="ri-history-line text-primary me-2"></i> {{ translate('Recurring Execution History') }}
+                        </h4>
+                        @if(isset($runs))
+                        <span class="i-badge info-soft pill">{{ $runs->total() ?? $runs->count() }} {{ translate('Total Runs') }}</span>
+                        @endif
+                    </div>
+                    <div class="card-body px-0 pt-0">
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th class="ps-4">{{ translate('Run #') }}</th>
+                                        <th>{{ translate('Scheduled Time') }}</th>
+                                        <th>{{ translate('Run Completed') }}</th>
+                                        <th>{{ translate('Processed') }}</th>
+                                        <th>{{ translate('Sent / Failed') }}</th>
+                                        <th class="text-end pe-4">{{ translate('Action') }}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($runs as $run)
+                                    <tr>
+                                        <td class="ps-4">
+                                            <span class="i-badge primary-soft pill">#{{ $run->run_number }}</span>
+                                        </td>
+                                        <td>
+                                            <small class="text-muted"><i class="ri-time-line me-1"></i>{{ $run->scheduled_at ? $run->scheduled_at->format('M d, Y h:i A') : '-' }}</small>
+                                        </td>
+                                        <td>
+                                            <small class="text-muted"><i class="ri-check-double-line me-1 text-success"></i>{{ $run->completed_at ? $run->completed_at->format('M d, Y h:i A') : '-' }}</small>
+                                        </td>
+                                        <td>
+                                            <small class="fw-semibold">{{ $run->processed_contacts }} / {{ $run->total_contacts }}</small>
+                                        </td>
+                                        <td>
+                                            <span class="i-badge success-soft pill me-1"><i class="ri-send-plane-line me-1"></i>{{ $run->sent_count }}</span>
+                                            @if($run->failed_count > 0)
+                                            <span class="i-badge danger-soft pill"><i class="ri-error-warning-line me-1"></i>{{ $run->failed_count }}</span>
+                                            @else
+                                            <span class="i-badge secondary-soft pill">0</span>
+                                            @endif
+                                        </td>
+                                        <td class="text-end pe-4">
+                                            <button type="button" class="i-btn btn--primary outline btn--sm" onclick="showUserRunLogModal({{ $campaign->id }}, {{ $run->id }}, {{ $run->run_number }})">
+                                                <i class="ri-file-list-3-line me-1"></i> {{ translate('View Log') }}
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    @empty
+                                    <tr>
+                                        <td colspan="6" class="text-center py-4 text-muted">
+                                            <i class="ri-history-line fs-2 d-block mb-2"></i>
+                                            {{ translate('No execution runs recorded yet for this recurring campaign') }}
+                                        </td>
+                                    </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                        @if(isset($runs) && method_exists($runs, 'links'))
+                        <div class="p-3">
+                            {{ $runs->links() }}
+                        </div>
+                        @endif
+                    </div>
+                </div>
+                @endif
             </div>
 
             <div class="col-lg-4">
@@ -327,4 +400,135 @@
         </div>
     </div>
 </main>
+
+<!-- Run Log Details Modal -->
+<div class="modal fade" id="userRunLogModal" tabindex="-1" aria-labelledby="userRunLogModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="userRunLogModalLabel">
+                    <i class="ri-history-line text-primary me-2"></i> <span id="userRunLogTitle">{{ translate('Execution Run Log') }}</span>
+                </h5>
+                <button type="button" class="icon-btn btn-ghost btn-sm danger-soft circle" data-bs-dismiss="modal">
+                    <i class="ri-close-large-line"></i>
+                </button>
+            </div>
+            <div class="modal-body p-4">
+                <div id="userRunLogLoading" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+                <div id="userRunLogContent" style="display: none;">
+                    <div class="row g-3 mb-4 p-3 bg-light rounded-3 border">
+                        <div class="col-6 col-md-3">
+                            <small class="text-muted d-block">{{ translate('Run Status') }}</small>
+                            <span id="userRunModalStatus" class="i-badge success-soft pill">Completed</span>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <small class="text-muted d-block">{{ translate('Scheduled Time') }}</small>
+                            <span id="userRunModalScheduled" class="fw-semibold fs-13">-</span>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <small class="text-muted d-block">{{ translate('Completed Time') }}</small>
+                            <span id="userRunModalCompleted" class="fw-semibold fs-13">-</span>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <small class="text-muted d-block">{{ translate('Sent / Failed') }}</small>
+                            <span id="userRunModalCounts" class="fw-semibold fs-13">-</span>
+                        </div>
+                    </div>
+
+                    <h6 class="mb-3">{{ translate('Contact Message Logs') }}</h6>
+                    <div class="table-responsive" style="max-height: 400px;">
+                        <table class="table align-middle mb-0 table-sm">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>{{ translate('Contact') }}</th>
+                                    <th>{{ translate('Target Address') }}</th>
+                                    <th>{{ translate('Status') }}</th>
+                                    <th>{{ translate('Error / Response') }}</th>
+                                </tr>
+                            </thead>
+                            <tbody id="userRunLogTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ translate('Close') }}</button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
+
+@push('script-push')
+<script>
+    function showUserRunLogModal(campaignId, runId, runNumber) {
+        document.getElementById('userRunLogTitle').textContent = '{{ translate("Run #") }}' + runNumber + ' {{ translate("Execution Log") }}';
+        document.getElementById('userRunLogLoading').style.display = 'block';
+        document.getElementById('userRunLogContent').style.display = 'none';
+
+        var myModal = new bootstrap.Modal(document.getElementById('userRunLogModal'));
+        myModal.show();
+
+        var url = '{{ route("user.campaign.run-log", ["id" => ":id", "runId" => ":runId"]) }}'
+            .replace(':id', campaignId)
+            .replace(':runId', runId);
+
+        fetch(url)
+            .then(response => response.json())
+            .then(res => {
+                if (res.status && res.data) {
+                    var data = res.data;
+                    document.getElementById('userRunModalStatus').textContent = (data.status || 'COMPLETED').toUpperCase();
+                    document.getElementById('userRunModalScheduled').textContent = data.scheduled_at || '-';
+                    document.getElementById('userRunModalCompleted').textContent = data.completed_at || '-';
+                    document.getElementById('userRunModalCounts').innerHTML = '<span class="text-success fw-bold">' + data.sent_count + ' sent</span> / <span class="text-danger fw-bold">' + data.failed_count + ' failed</span>';
+
+                    var tbody = document.getElementById('userRunLogTableBody');
+                    tbody.innerHTML = '';
+
+                    if (data.dispatch_history && data.dispatch_history.length > 0) {
+                        data.dispatch_history.forEach(function(item) {
+                            var statusBadge = item.status === 'sent' || item.status === 'delivered' 
+                                ? '<span class="i-badge success-soft pill"><i class="ri-check-line me-1"></i>Sent</span>' 
+                                : '<span class="i-badge danger-soft pill"><i class="ri-error-warning-line me-1"></i>Failed</span>';
+
+                            var errorMsg = item.error_message 
+                                ? '<span class="text-danger small"><i class="ri-error-warning-line me-1"></i>' + escapeHtml(item.error_message) + '</span>' 
+                                : '<span class="text-muted small">-</span>';
+
+                            var tr = document.createElement('tr');
+                            tr.innerHTML = '<td><strong>' + escapeHtml(item.contact_name) + '</strong></td>' +
+                                '<td><small class="text-muted">' + escapeHtml(item.contact_address) + '</small></td>' +
+                                '<td>' + statusBadge + '</td>' +
+                                '<td>' + errorMsg + '</td>';
+                            tbody.appendChild(tr);
+                        });
+                    } else {
+                        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-3 text-muted">No dispatch history recorded for this run</td></tr>';
+                    }
+
+                    document.getElementById('userRunLogLoading').style.display = 'none';
+                    document.getElementById('userRunLogContent').style.display = 'block';
+                }
+            })
+            .catch(err => {
+                document.getElementById('userRunLogLoading').innerHTML = '<div class="alert alert-danger mb-0">Failed to load run log details</div>';
+            });
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        return String(text)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+</script>
+@endpush
