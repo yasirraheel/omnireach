@@ -224,11 +224,11 @@ class UnifiedCampaign extends Model
      */
     public function getProgressPercentage(): float
     {
-        if ($this->total_contacts === 0) {
+        if ($this->total_contacts === 0 || $this->status === UnifiedCampaignStatus::SCHEDULED) {
             return 0;
         }
 
-        return round(($this->processed_contacts / $this->total_contacts) * 100, 2);
+        return min(100.0, round(($this->processed_contacts / $this->total_contacts) * 100, 2));
     }
 
     /**
@@ -275,6 +275,10 @@ class UnifiedCampaign extends Model
      */
     public function updateChannelStats(string $channel, array $updates): void
     {
+        if ($this->status !== UnifiedCampaignStatus::RUNNING) {
+            return;
+        }
+
         $stats = $this->stats ?? [];
         $channelStats = $stats[$channel] ?? [
             'total' => 0,
@@ -375,7 +379,9 @@ class UnifiedCampaign extends Model
      */
     public function incrementProcessed(int $count = 1): void
     {
-        $this->increment('processed_contacts', $count);
+        if ($this->status === UnifiedCampaignStatus::RUNNING) {
+            $this->increment('processed_contacts', $count);
+        }
     }
 
     /**
