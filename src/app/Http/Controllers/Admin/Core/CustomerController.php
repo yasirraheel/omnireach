@@ -155,18 +155,6 @@ class CustomerController extends Controller
 
                 $this->customerService->updatePlan($user, $request);
             }
-            AndroidSession::where([
-
-                "user_id" => $user->id, 
-                "status"  => Status::ACTIVE
-            ])->update(["status" => Status::INACTIVE]);
-
-            Gateway::where([
-
-                "user_id" => $user->id, 
-                "channel" => ChannelTypeEnum::WHATSAPP,
-                "status"  => Status::ACTIVE
-            ])->update(["status" => Status::INACTIVE]);
 
             $user->fill($this->userData($request->validated()));
             $user->address = [
