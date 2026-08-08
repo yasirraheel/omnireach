@@ -353,8 +353,7 @@ class AdminController extends Controller
         ];
 
         // 2. Email Gateway
-        $hasEmailGateway = Gateway::whereNull('user_id')
-            ->where('channel', ChannelTypeEnum::EMAIL->value)
+        $hasEmailGateway = Gateway::where('channel', ChannelTypeEnum::EMAIL->value)
             ->where('status', \App\Enums\Common\Status::ACTIVE->value)
             ->exists();
         $items[] = [
@@ -370,8 +369,7 @@ class AdminController extends Controller
         ];
 
         // 3. SMS Gateway
-        $hasSmsGateway = Gateway::whereNull('user_id')
-            ->where('channel', ChannelTypeEnum::SMS->value)
+        $hasSmsGateway = Gateway::where('channel', ChannelTypeEnum::SMS->value)
             ->where('status', \App\Enums\Common\Status::ACTIVE->value)
             ->exists();
         $items[] = [
@@ -387,17 +385,16 @@ class AdminController extends Controller
         ];
 
         // 4. WhatsApp Gateway
-        $hasWhatsAppGateway = Gateway::whereNull('user_id')
-            ->where('channel', ChannelTypeEnum::WHATSAPP->value)
+        $hasWhatsAppGateway = Gateway::where('channel', ChannelTypeEnum::WHATSAPP->value)
             ->where('status', \App\Enums\Common\Status::ACTIVE->value)
-            ->exists();
+            ->exists() || \App\Models\WhatsappDevice::where('status', 'connected')->exists();
         $items[] = [
             'key'         => 'whatsapp_gateway',
             'label'       => translate('WhatsApp Gateway'),
             'description' => translate('At least one active WhatsApp gateway is needed'),
             'done'        => $hasWhatsAppGateway,
             'icon'        => 'ri-whatsapp-line',
-            'route'       => route('admin.gateway.whatsapp.cloud.api.index'),
+            'route'       => route('admin.gateway.whatsapp.device.index'),
             'hint'        => $hasWhatsAppGateway
                 ? translate('Gateway configured')
                 : translate('No active gateway'),
