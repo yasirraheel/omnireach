@@ -138,6 +138,7 @@
                         <thead>
                             <tr>
                                 <th scope="col">{{ translate("Session Name") }}</th>
+                                <th scope="col">{{ translate("Owner") }}</th>
                                 <th scope="col">{{ translate("WhatsApp Number") }}</th>
                                 <th scope="col">{{ translate("Delay Settings") }}</th>
                                 <th scope="col">{{ translate("Status") }}</th>
@@ -149,6 +150,13 @@
                                 <tbody>
                                 <tr>
                                     <td data-label="{{translate('Session Name')}}">{{$item->name}}</td>
+                                    <td data-label="{{translate('Owner')}}">
+                                        @if($item->user)
+                                            <span class="badge bg-soft-info text-info"><i class="ri-user-line me-1"></i>{{ $item->user->name ?? $item->user->username }}</span>
+                                        @else
+                                            <span class="badge bg-soft-secondary text-secondary"><i class="ri-admin-line me-1"></i>{{ translate("Admin") }}</span>
+                                        @endif
+                                    </td>
                                     <td data-label="{{translate('WhatsApp Number')}}">
                                         {{ \Illuminate\Support\Arr::get($item->meta_data, "number", translate("N/A")) }}
                                     </td>

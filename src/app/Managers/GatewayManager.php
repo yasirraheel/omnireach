@@ -46,6 +46,7 @@ class GatewayManager
           $allowedAccess   = $user ? (object)planAccess($user) : null;
           return Gateway::select([
 
+               'user_id',
                'id',
                'uid',
                'name',
@@ -62,7 +63,7 @@ class GatewayManager
                'bulk_contact_limit',
                'delay_after_duration',
 
-          ])->search(['name'])
+          ])->with(['user'])->search(['name'])
                ->date()
                ->where('channel', $channel)
                ->when($user, 
@@ -70,9 +71,7 @@ class GatewayManager
                          $query->when((($channel == ChannelTypeEnum::EMAIL || $channel == ChannelTypeEnum::SMS) 
                          && @$allowedAccess?->type == StatusEnum::FALSE->status()) || $channel == ChannelTypeEnum::WHATSAPP, 
                                    fn(Builder $q): Builder =>
-                                        $q->where('user_id', $user->id)), 
-                                   fn(Builder $q): Builder => 
-                                        $q->whereNull("user_id"))
+                                        $q->where('user_id', $user->id)))
                ->when($type, fn(Builder $q): Builder =>
                     $q->where("type", $type))
                ->orderBy("is_default", "DESC")
