@@ -203,10 +203,21 @@
                                     $data["email_contact"] = $contact->email_contact;
                                 }
 
-                                if($contact->meta_data) {
+                                $metaData = $contact->meta_data;
+                                if (is_string($metaData)) {
+                                    $metaData = json_decode($metaData, true);
+                                    if (is_string($metaData)) {
+                                        $metaData = json_decode($metaData, true);
+                                    }
+                                }
 
-                                    foreach($contact->meta_data as $key => $value) {
-                                        $data[$key] = $value;
+                                if (is_array($metaData) || is_object($metaData)) {
+                                    foreach ((array)$metaData as $key => $value) {
+                                        if (is_scalar($value)) {
+                                            $data[$key] = $value;
+                                        } elseif (is_array($value)) {
+                                            $data[$key] = implode(', ', $value);
+                                        }
                                     }
                                 }
 

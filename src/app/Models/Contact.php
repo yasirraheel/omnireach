@@ -65,6 +65,35 @@ class Contact extends Model
     }
 
     /**
+     * Get the meta_data attribute.
+     * Safely handles double-encoded JSON and null values.
+     *
+     * @param  mixed  $value
+     * @return array
+     */
+    public function getMetaDataAttribute($value)
+    {
+        if (empty($value)) {
+            return [];
+        }
+
+        if (is_array($value)) {
+            return $value;
+        }
+
+        if (is_object($value)) {
+            return (array) $value;
+        }
+
+        $decoded = json_decode($value, true);
+        if (is_string($decoded)) {
+            $decoded = json_decode($decoded, true);
+        }
+
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    /**
      * group
      *
      * @return BelongsTo
