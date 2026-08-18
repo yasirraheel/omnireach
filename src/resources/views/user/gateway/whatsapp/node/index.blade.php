@@ -115,7 +115,7 @@
                                             @elseif($item->status == \App\Enums\Common\Status::ACTIVE)
                                                 <button class="icon-btn btn-ghost btn-sm primary-soft circle extract-whatsapp-groups"
                                                         type="button"
-                                                        data-url="{{ route('user.device.extract-groups', ['id' => $item->id]) }}" 
+                                                        data-url="{{ route('user.gateway.whatsapp.device.extract-groups', ['id' => $item->id]) }}" 
                                                         data-bs-toggle="modal"
                                                         data-bs-target="#extractGroupsModal">
                                                     <i class="ri-group-line"></i>
