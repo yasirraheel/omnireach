@@ -357,6 +357,16 @@ class ContactService
      */
     private function fetchContacts(bool $export = false, int|string|null $groupId = null, ?User $user = null): Collection|LengthAwarePaginator {
 
+        $paginateParam = request()->input('paginate', request()->input('per_page', site_settings('paginate_number')));
+        if ($paginateParam === 'all') {
+            $paginateNumber = 5000;
+        } else {
+            $paginateNumber = (int) $paginateParam;
+            if ($paginateNumber <= 0) {
+                $paginateNumber = paginateNumber(site_settings('paginate_number'));
+            }
+        }
+
         return Contact::when($user, fn(Builder $q): Builder => 
                     $q->where('user_id', $user->id), 
                         fn(Builder $q) : Builder =>
@@ -379,7 +389,7 @@ class ContactService
                     $export,
                     fn(Builder $q): Collection => $q->get(),
                     fn(Builder $q): LengthAwarePaginator => 
-                        $q->paginate(paginateNumber(site_settings('paginate_number')))
+                        $q->paginate($paginateNumber)
                             ->onEachSide(1)
                             ->appends(request()->all())
                 );

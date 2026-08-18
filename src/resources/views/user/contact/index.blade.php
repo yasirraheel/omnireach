@@ -1,5 +1,34 @@
 @push("style-include")
   <link rel="stylesheet" href="{{ asset('assets/theme/global/css/select2.min.css')}}">
+  <style>
+    .table-container {
+        position: relative;
+        overflow-x: auto;
+    }
+    .table-container table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+    .table-container table th:last-child,
+    .table-container table td:last-child {
+        position: sticky;
+        right: 0;
+        background: #ffffff;
+        z-index: 2;
+        box-shadow: -3px 0 6px -2px rgba(0, 0, 0, 0.12);
+    }
+    .table-container table tr:nth-child(even) td:last-child {
+        background: #f9fafb;
+    }
+    .table-container table tr:hover td:last-child {
+        background: #f1f5f9;
+    }
+    .table-container table th:last-child {
+        z-index: 3;
+        background: #f8fafc;
+    }
+  </style>
 @endpush
 
 @extends('user.layouts.app')
@@ -50,6 +79,15 @@
                             <option value=""></option>
                             <option {{ request()->status == \App\Enums\Common\Status::ACTIVE->value ? 'selected' : ''  }} value="{{ \App\Enums\Common\Status::ACTIVE->value }}">{{ translate("Active") }}</option>
                             <option {{ request()->status == \App\Enums\Common\Status::INACTIVE->value ? 'selected' : ''  }} value="{{ \App\Enums\Common\Status::INACTIVE->value }}">{{ translate("Inactive") }}</option>
+                        </select>
+                        <select data-placeholder="{{translate('Per Page')}}" class="form-select select2-search" name="paginate" aria-label="Per Page" onchange="this.form.submit()">
+                            <option {{ request()->input('paginate', 10) == 10 ? 'selected' : '' }} value="10">10 {{ translate("per page") }}</option>
+                            <option {{ request()->input('paginate') == 25 ? 'selected' : '' }} value="25">25 {{ translate("per page") }}</option>
+                            <option {{ request()->input('paginate') == 50 ? 'selected' : '' }} value="50">50 {{ translate("per page") }}</option>
+                            <option {{ request()->input('paginate') == 100 ? 'selected' : '' }} value="100">100 {{ translate("per page") }}</option>
+                            <option {{ request()->input('paginate') == 200 ? 'selected' : '' }} value="200">200 {{ translate("per page") }}</option>
+                            <option {{ request()->input('paginate') == 500 ? 'selected' : '' }} value="500">500 {{ translate("per page") }}</option>
+                            <option {{ request()->input('paginate') == 'all' ? 'selected' : '' }} value="all">{{ translate("Show All") }}</option>
                         </select>
                         <div class="input-group">
                             <input type="text" class="form-control" id="datePicker" name="date" value="{{request()->input('date')}}"  placeholder="{{translate('Filter by date')}}"  aria-describedby="filterByDate">
