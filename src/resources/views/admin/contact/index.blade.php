@@ -81,7 +81,7 @@
                             <option {{ request()->status == \App\Enums\Common\Status::ACTIVE->value ? 'selected' : ''  }} value="{{ \App\Enums\Common\Status::ACTIVE->value }}">{{ translate("Active") }}</option>
                             <option {{ request()->status == \App\Enums\Common\Status::INACTIVE->value ? 'selected' : ''  }} value="{{ \App\Enums\Common\Status::INACTIVE->value }}">{{ translate("Inactive") }}</option>
                         </select>
-                        <select data-placeholder="{{translate('Per Page')}}" class="form-select select2-search" name="paginate" aria-label="Per Page" onchange="this.form.submit()">
+                        <select class="form-select" name="paginate" style="min-width: 120px;" aria-label="Per Page" onchange="this.form.submit()">
                             <option {{ request()->input('paginate', 10) == 10 ? 'selected' : '' }} value="10">10 {{ translate("per page") }}</option>
                             <option {{ request()->input('paginate') == 25 ? 'selected' : '' }} value="25">25 {{ translate("per page") }}</option>
                             <option {{ request()->input('paginate') == 50 ? 'selected' : '' }} value="50">50 {{ translate("per page") }}</option>
@@ -128,6 +128,16 @@
                             <option value="{{ \App\Enums\Common\Status::INACTIVE->value }}">{{ translate("Inactive") }}</option>
                         </select>
                     </div>
+
+                    <select class="form-select form-select-sm" style="width: auto; min-width: 120px;" name="card_paginate" onchange="const url = new URL(window.location.href); url.searchParams.set('paginate', this.value); url.searchParams.set('page', 1); window.location.href = url.toString();">
+                        <option value="10" {{ request()->input('paginate', 10) == 10 ? 'selected' : '' }}>10 {{ translate("per page") }}</option>
+                        <option value="25" {{ request()->input('paginate') == 25 ? 'selected' : '' }}>25 {{ translate("per page") }}</option>
+                        <option value="50" {{ request()->input('paginate') == 50 ? 'selected' : '' }}>50 {{ translate("per page") }}</option>
+                        <option value="100" {{ request()->input('paginate') == 100 ? 'selected' : '' }}>100 {{ translate("per page") }}</option>
+                        <option value="200" {{ request()->input('paginate') == 200 ? 'selected' : '' }}>200 {{ translate("per page") }}</option>
+                        <option value="500" {{ request()->input('paginate') == 500 ? 'selected' : '' }}>500 {{ translate("per page") }}</option>
+                        <option value="all" {{ request()->input('paginate') == 'all' ? 'selected' : '' }}>{{ translate("Show All") }}</option>
+                    </select>
                     
                     <a class="i-btn btn--primary btn--sm" href="{{ route('admin.contact.create.with_group', $groupId) }}">
                         <i class="ri-add-fill fs-16"></i> {{ translate("Create New Contact") }}
