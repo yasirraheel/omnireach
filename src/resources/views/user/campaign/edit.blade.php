@@ -72,9 +72,11 @@
                                                     <select name="contact_group_id" id="contactGroup" class="form-select select2-search" data-placeholder="{{ translate('Select Contact Group') }}" required>
                                                         <option value=""></option>
                                                         @foreach($contactGroups as $group)
-                                                        <option value="{{ $group->id }}" {{ old('contact_group_id', $campaign->contact_group_id) == $group->id ? 'selected' : '' }}>
-                                                            {{ $group->name }} ({{ number_format($group->contacts_count) }})
+                                                        @if($group)
+                                                        <option value="{{ $group->id }}" {{ old('contact_group_id', $campaign->contact_group_id ?? null) == $group->id ? 'selected' : '' }}>
+                                                            {{ $group->name }} ({{ number_format($group->contacts_count ?? 0) }})
                                                         </option>
+                                                        @endif
                                                         @endforeach
                                                     </select>
                                                     @error('contact_group_id')<small class="text-danger">{{ $message }}</small>@enderror
