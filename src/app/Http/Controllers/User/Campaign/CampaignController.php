@@ -160,28 +160,7 @@ class CampaignController extends Controller
         }
     }
 
-    /**
-     * Show campaign details
-     */
-    public function show(int $id): View
-    {
-        $user = auth()->user();
-        $campaign = UnifiedCampaign::where('id', $id)
-            ->where('user_id', $user->id)
-            ->with(['contactGroup', 'messages.gateway', 'dispatches'])
-            ->firstOrFail();
 
-        $title = $campaign->name;
-
-        // Get statistics
-        $statistics = $this->campaignService->getStatistics($campaign);
-
-        return view('user.campaign.show', compact(
-            'title',
-            'campaign',
-            'statistics'
-        ));
-    }
 
     /**
      * Edit campaign
