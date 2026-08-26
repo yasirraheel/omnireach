@@ -301,7 +301,7 @@
 <body>
 
 
-    @if ($errors->any())
+    @if (isset($errors) && $errors->any())
         @foreach($errors->all() as $message)
             <script>
                 "use strict";
