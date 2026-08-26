@@ -174,11 +174,15 @@
                                     <span class="i-badge {{ $statusColor }}-soft pill">{{ $campaign->status->label() }}</span>
                                 </td>
                                 <td data-label="{{ translate('Schedule Time') }}">
-                                    @if($campaign->scheduled_at)
-                                        <small>{{ $campaign->scheduled_at->format('M d, Y') }}</small>
-                                        <br><small class="text-muted">{{ $campaign->scheduled_at->format('h:i A') }}</small>
+                                    @php
+                                        $tz = $campaign->timezone ?: (site_settings('time_zone') ?: 'UTC');
+                                        $localSchedule = $campaign->schedule_at ? \Carbon\Carbon::parse($campaign->schedule_at)->setTimezone($tz) : null;
+                                    @endphp
+                                    @if($localSchedule)
+                                        <small>{{ $localSchedule->format('M d, Y') }}</small>
+                                        <br><small class="text-muted">{{ $localSchedule->format('h:i A') }}</small>
                                     @else
-                                        <span class="text-muted">-</span>
+                                        <small class="text-muted"><i class="ri-flashlight-line"></i> {{ translate('Instant') }}</small>
                                     @endif
                                 </td>
                                 <td data-label="{{ translate('Actions') }}">

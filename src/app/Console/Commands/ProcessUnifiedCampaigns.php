@@ -139,25 +139,32 @@ class ProcessUnifiedCampaigns extends Command
 
         if ($isRecurring) {
             $config       = $campaign->recurring_config;
-            $repeatTime   = (int) ($config['repeat_time'] ?? 1);
+            $repeatTime   = max(1, (int) ($config['repeat_time'] ?? 1));
             $repeatFormat = $config['repeat_format'] ?? 'daily';
 
-            $scheduleAt = \Carbon\Carbon::parse($campaign->schedule_at ?? now());
-            match ($repeatFormat) {
-                'hourly'  => $scheduleAt->addHours($repeatTime),
-                'daily'   => $scheduleAt->addDays($repeatTime),
-                'weekly'  => $scheduleAt->addWeeks($repeatTime),
-                'monthly' => $scheduleAt->addMonths($repeatTime),
-                'yearly'  => $scheduleAt->addYears($repeatTime),
-                default   => $scheduleAt->addDays($repeatTime),
-            };
+            $baseTime = $campaign->schedule_at ? \Carbon\Carbon::parse($campaign->schedule_at) : now();
+
+            // Advance schedule forward until it is strictly in the future
+            do {
+                match ($repeatFormat) {
+                    'hourly'  => $baseTime->addHours($repeatTime),
+                    'daily'   => $baseTime->addDays($repeatTime),
+                    'weekly'  => $baseTime->addWeeks($repeatTime),
+                    'monthly' => $baseTime->addMonths($repeatTime),
+                    'yearly'  => $baseTime->addYears($repeatTime),
+                    default   => $baseTime->addDays($repeatTime),
+                };
+            } while ($baseTime->lte(now()));
+
+            $scheduleAt = $baseTime;
 
             $dispatchService = app(CampaignDispatchService::class);
             $dispatchService->recordRunHistory($campaign, $scheduleAt);
 
-            // Reset all dispatches for next run
+            // Reset all dispatches for next run and assign the new future scheduled_at
             $campaign->dispatches()->update([
                 'status'        => DispatchStatus::PENDING,
+                'scheduled_at'  => $scheduleAt,
                 'sent_at'       => null,
                 'delivered_at'  => null,
                 'error_message' => null,

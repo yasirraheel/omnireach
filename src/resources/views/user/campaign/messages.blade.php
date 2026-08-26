@@ -290,9 +290,13 @@
                                     <div class="fw-semibold">{{ $campaign->type->label() }}</div>
                                 </div>
                                 @if($campaign->schedule_at)
+                                @php
+                                    $tz = $campaign->timezone ?: (site_settings('time_zone') ?: 'UTC');
+                                    $localSchedule = \Carbon\Carbon::parse($campaign->schedule_at)->setTimezone($tz);
+                                @endphp
                                 <div class="summary-item">
                                     <small class="text-muted">{{ translate('Schedule') }}</small>
-                                    <div class="fw-semibold">{{ $campaign->schedule_at->format('M d, Y H:i') }}</div>
+                                    <div class="fw-semibold">{{ $localSchedule->format('M d, Y H:i') }} ({{ $tz }})</div>
                                 </div>
                                 @endif
                             </div>

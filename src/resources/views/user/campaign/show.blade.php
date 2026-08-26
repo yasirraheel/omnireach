@@ -381,6 +381,16 @@
                                 <span class="text-muted">{{ translate('Progress') }}</span>
                                 <span class="fw-medium">{{ $progress }}%</span>
                             </li>
+                            @if($campaign->schedule_at)
+                            @php
+                                $tz = $campaign->timezone ?: (site_settings('time_zone') ?: 'UTC');
+                                $localSchedule = \Carbon\Carbon::parse($campaign->schedule_at)->setTimezone($tz);
+                            @endphp
+                            <li class="d-flex justify-content-between py-2 border-bottom">
+                                <span class="text-muted">{{ translate('Scheduled For') }}</span>
+                                <span class="fw-medium">{{ $localSchedule->format('M d, Y H:i') }} ({{ $tz }})</span>
+                            </li>
+                            @endif
                             @if($campaign->started_at)
                             <li class="d-flex justify-content-between py-2 border-bottom">
                                 <span class="text-muted">{{ translate('Started At') }}</span>

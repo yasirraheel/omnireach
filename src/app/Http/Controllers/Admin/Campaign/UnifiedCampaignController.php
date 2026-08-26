@@ -118,7 +118,7 @@ class UnifiedCampaignController extends Controller
             'channels' => 'required|array|min:1',
             'channels.*' => 'in:sms,email,whatsapp',
             'channel_detection_mode' => 'required|in:auto,manual,priority_fallback',
-            'schedule_at' => 'nullable|date|after:now',
+            'schedule_at' => 'nullable|date',
             'timezone' => 'nullable|string|max:50',
         ]);
 

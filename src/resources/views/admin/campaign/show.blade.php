@@ -345,11 +345,15 @@
                                 </div>
                             </div>
                             @if($campaign->schedule_at)
+                            @php
+                                $tz = $campaign->timezone ?: (site_settings('time_zone') ?: 'UTC');
+                                $localSchedule = \Carbon\Carbon::parse($campaign->schedule_at)->setTimezone($tz);
+                            @endphp
                             <div class="detail-item d-flex justify-content-between flex-wrap">
                                 <small class="text-muted">{{ translate('Scheduled For') }}</small>
                                 <div class="fw-semibold fs-14">
                                     <i class="ri-calendar-event-line me-1"></i>
-                                    {{ $campaign->schedule_at->format('M d, Y H:i') }}
+                                    {{ $localSchedule->format('M d, Y H:i') }} ({{ $tz }})
                                 </div>
                             </div>
                             @endif

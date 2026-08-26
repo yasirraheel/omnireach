@@ -32,6 +32,16 @@ class UnifiedCampaignService
     public function create(array $data, ?int $userId = null): UnifiedCampaign
     {
         return DB::transaction(function () use ($data, $userId) {
+            $scheduleAt = null;
+            if (!empty($data['schedule_at'])) {
+                $tz = $data['timezone'] ?? site_settings('time_zone') ?: config('app.timezone');
+                try {
+                    $scheduleAt = \Carbon\Carbon::parse($data['schedule_at'], $tz)->setTimezone('UTC');
+                } catch (\Throwable $e) {
+                    $scheduleAt = \Carbon\Carbon::parse($data['schedule_at']);
+                }
+            }
+
             // Create the campaign
             $campaign = UnifiedCampaign::create([
                 'user_id' => $userId,
@@ -39,7 +49,7 @@ class UnifiedCampaignService
                 'description' => $data['description'] ?? null,
                 'status' => UnifiedCampaignStatus::DRAFT,
                 'type' => $data['type'] ?? CampaignType::INSTANT,
-                'schedule_at' => $data['schedule_at'] ?? null,
+                'schedule_at' => $scheduleAt,
                 'timezone' => $data['timezone'] ?? 'UTC',
                 'recurring_config' => $data['recurring_config'] ?? null,
                 'contact_group_id' => $data['contact_group_id'],
@@ -76,11 +86,25 @@ class UnifiedCampaignService
         }
 
         return DB::transaction(function () use ($campaign, $data) {
+            $scheduleAt = $campaign->schedule_at;
+            if (array_key_exists('schedule_at', $data)) {
+                if (!empty($data['schedule_at'])) {
+                    $tz = $data['timezone'] ?? $campaign->timezone ?? site_settings('time_zone') ?: config('app.timezone');
+                    try {
+                        $scheduleAt = \Carbon\Carbon::parse($data['schedule_at'], $tz)->setTimezone('UTC');
+                    } catch (\Throwable $e) {
+                        $scheduleAt = \Carbon\Carbon::parse($data['schedule_at']);
+                    }
+                } else {
+                    $scheduleAt = null;
+                }
+            }
+
             $campaign->update([
                 'name' => $data['name'] ?? $campaign->name,
                 'description' => $data['description'] ?? $campaign->description,
                 'type' => $data['type'] ?? $campaign->type,
-                'schedule_at' => $data['schedule_at'] ?? $campaign->schedule_at,
+                'schedule_at' => $scheduleAt,
                 'timezone' => $data['timezone'] ?? $campaign->timezone,
                 'recurring_config' => $data['recurring_config'] ?? $campaign->recurring_config,
                 'contact_group_id' => $data['contact_group_id'] ?? $campaign->contact_group_id,
@@ -241,7 +265,7 @@ class UnifiedCampaignService
             $this->createDispatches($campaign);
 
             // Update campaign status
-            if ($campaign->type === CampaignType::INSTANT) {
+            if ($campaign->type === CampaignType::INSTANT || ($campaign->schedule_at && $campaign->schedule_at->lte(now()))) {
                 $campaign->markAsStarted();
             } else {
                 $campaign->update(['status' => UnifiedCampaignStatus::SCHEDULED]);
