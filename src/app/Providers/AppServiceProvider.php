@@ -87,6 +87,13 @@ class AppServiceProvider extends ServiceProvider
                 }
             }
 
+            // Ensure $errors variable is always available in all views
+            view()->composer('*', function ($v) {
+                if (!array_key_exists('errors', $v->getData())) {
+                    $v->with('errors', session()->get('errors', new \Illuminate\Support\ViewErrorBag()));
+                }
+            });
+
             view()->share($view);
 
             // Admin sidebar - cache counts for 5 minutes to reduce DB load
