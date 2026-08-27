@@ -28,6 +28,10 @@ class UnifiedCampaignController extends Controller
     ) {
         $this->campaignService = $campaignService;
         $this->channelDetection = $channelDetection;
+        $this->middleware(function ($request, $next) {
+            session()->put('menu_active', true);
+            return $next($request);
+        });
     }
 
     /**

@@ -4,7 +4,7 @@
     dir="{{ site_settings('theme_dir', \App\Enums\StatusEnum::FALSE->status()) == \App\Enums\StatusEnum::FALSE->status() 
                 ? 'ltr' 
                 : 'rtl' }}" 
-    class="{{ session()->get('menu_active') 
+    class="{{ (session()->get('menu_active') || request()->routeIs('admin.campaign.*') || request()->routeIs('admin.campaign.intelligence.*')) 
                 ? 'menu-active' 
                 : '' }}">
     <script>
@@ -645,13 +645,28 @@
             }
         }
     });
+});
+</script>
 
-            // Ensure layout shifts correctly if a sub-menu is automatically shown
-            document.addEventListener('DOMContentLoaded', function() {
-                if (document.querySelector('.sub-menu-wrapper.show')) {
-                    document.documentElement.classList.add('menu-active');
-                }
-            });
-        </script>
-    </body>
+<script>
+    // Ensure layout shifts correctly if a sub-menu is automatically shown
+    function syncSubMenuLayout() {
+        if (window.innerWidth >= 1200 && document.querySelector('.sub-menu-wrapper.show')) {
+            document.documentElement.classList.add('menu-active');
+        }
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', syncSubMenuLayout);
+    } else {
+        syncSubMenuLayout();
+    }
+    window.addEventListener('resize', function() {
+        if (window.innerWidth < 1200) {
+            document.documentElement.classList.remove('menu-active');
+        } else if (document.querySelector('.sub-menu-wrapper.show')) {
+            document.documentElement.classList.add('menu-active');
+        }
+    });
+</script>
+</body>
 </html>
