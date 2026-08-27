@@ -99,6 +99,8 @@ Route::middleware([
             'sanitizer'
             ])->group(function () {
 
+        Route::get('/keep-alive', fn() => response()->json(['status' => 'ok']))->name('keepalive');
+
         Route::post('/verify-email', [GlobalWorldController::class, 'verifyEmail'])
                 ->name('verify.email');
 

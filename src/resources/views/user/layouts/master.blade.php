@@ -452,6 +452,13 @@
                     document.documentElement.classList.add('menu-active');
                 }
             });
+
+            // Session Keepalive: ping server every 10 minutes to keep user session active while tab is open
+            setInterval(function() {
+                fetch('{{ route("user.keepalive") }}', {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                }).catch(function() {});
+            }, 10 * 60 * 1000);
         </script>
     </body>
 </html>

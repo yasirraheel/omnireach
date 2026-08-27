@@ -70,6 +70,7 @@ Route::middleware([
             ->name('user.')
             ->group(function () {
 
+    Route::get('/keep-alive', fn() => response()->json(['status' => 'ok']))->name('keepalive');
     Route::get('/language/change/{id?}', [GlobalWorldController::class, 'languageChange'])->name('language.change');
     
     ## Verfify Email Address Authenticity
