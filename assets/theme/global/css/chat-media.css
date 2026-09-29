@@ -77,7 +77,8 @@
 }
 
 .message.left .message-body {
-  background-color: #f1f1f1;
+  background-color: var(--chat-bubble-in, #f1f1f1);
+  color: var(--chat-bubble-in-text, inherit);
   border-radius: 10px 10px 10px 0;
   padding: 10px;
   max-width: 70%;
@@ -86,8 +87,8 @@
 }
 
 .message.right .message-body {
-  background-color: #007bff;
-  color: white;
+  background-color: var(--chat-bubble-out, var(--color-primary, #007bff));
+  color: var(--chat-bubble-out-text, white);
   border-radius: 10px 10px 0 10px;
   padding: 8px;
   max-width: 70%;
