@@ -75,6 +75,9 @@ class WhatsAppController extends Controller
 
             $user = $this->authenticateUser();
             $method = WhatsAppGatewayTypeEnum::NODE->value;
+            // DispatchService operates on business users. Admin API keys use
+            // the global gateway setting and must be represented as null here.
+            $dispatchUser = $user instanceof User ? $user : null;
 
             // Use gateway preference based on user type (Admin uses site_settings, User uses their preference)
             if ($user instanceof Admin) {
@@ -211,7 +214,7 @@ class WhatsAppController extends Controller
                                 request: $requestData,
                                 isCampaign: false,
                                 campaignId: null,
-                                user: $user,
+                                user: $dispatchUser,
                                 isApi: true,
                                 apiLogCount: $contactCount,
                             );
@@ -271,6 +274,9 @@ class WhatsAppController extends Controller
 
             $user = $this->authenticateUser();
             $method = WhatsAppGatewayTypeEnum::NODE->value;
+            // Keep the admin identity for gateway selection above, but do not
+            // pass it into the user-scoped dispatch service.
+            $dispatchUser = $user instanceof User ? $user : null;
 
             // Use gateway preference based on user type (Admin uses site_settings, User uses their preference)
             if ($user instanceof Admin) {
@@ -317,7 +323,7 @@ class WhatsAppController extends Controller
                 request: $apiRequest,
                 isCampaign: false,
                 campaignId: null,
-                user: $user,
+                user: $dispatchUser,
                 isApi: true
             );
 
