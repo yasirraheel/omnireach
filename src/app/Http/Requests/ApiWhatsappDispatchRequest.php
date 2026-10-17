@@ -11,6 +11,30 @@ use Illuminate\Http\Exceptions\HttpResponseException;
 
 class ApiWhatsappDispatchRequest extends FormRequest
 {
+    /**
+     * Keep the API compatible with simple gateway integrations that send one
+     * recipient as {number, message}. The dispatch pipeline itself consumes
+     * the canonical contact array, so normalize the shorthand before rules
+     * are evaluated.
+     */
+    protected function prepareForValidation(): void
+    {
+        if (!$this->has('contact') && $this->filled('number') && $this->filled('message')) {
+            $contact = [
+                'number' => $this->input('number'),
+                'message' => $this->input('message'),
+            ];
+
+            foreach (['gateway_identifier', 'schedule_at', 'media', 'url', 'filename'] as $field) {
+                if ($this->filled($field)) {
+                    $contact[$field] = $this->input($field);
+                }
+            }
+
+            $this->merge(['contact' => [$contact]]);
+        }
+    }
+
     public function authorize(): bool
     {
         return true;

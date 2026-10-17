@@ -381,7 +381,15 @@ class GatewayService
       */
      public function destroyGateway(ChannelTypeEnum $channel, string|null $type = null, int|string|null $id = null, ?User $user = null): RedirectResponse {
 
-          $gateway = $this->gatewayManager->getSpecificGateway(channel: $channel, type: $type, column: "id", value: $id, user: $user);
+          // Admin deletes must be able to remove gateways owned by business users.
+          // The manager defaults to user_id IS NULL when no user is supplied,
+          // which made valid business gateways appear as "Invalid Gateway" here.
+          $gateway = Gateway::query()
+                              ->when($user, fn(Builder $q): Builder => $q->where("user_id", $user->id))
+                              ->when($type, fn(Builder $q): Builder => $q->where("type", $type))
+                              ->where("channel", $channel)
+                              ->where("id", $id)
+                              ->first();
           if(!$gateway) throw new ApplicationException("Invalid Gateway. Please try disconnecting the session then try again", Response::HTTP_NOT_FOUND);
           
           $gateway->delete();

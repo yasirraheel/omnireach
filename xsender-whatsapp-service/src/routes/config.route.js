@@ -192,6 +192,15 @@ router.post(
       let envContent = fs.readFileSync(envPath, 'utf8');
       let updated = [];
 
+      // Compare requested values with the currently loaded environment.
+      // A restart is only required when HOST or PORT actually changes.
+      const currentHost = process.env.HOST || process.env.SERVER_HOST || '';
+      const currentPort = String(process.env.PORT || process.env.SERVER_PORT || '');
+      const requestedHost = serverHost !== undefined && serverHost !== '' ? String(serverHost) : currentHost;
+      const requestedPort = serverPort !== undefined && serverPort !== '' ? String(serverPort) : currentPort;
+      const hostChanged = requestedHost !== currentHost;
+      const portChanged = requestedPort !== currentPort;
+
       // Helper function to update or add env variable
       const updateEnvVar = (content, key, value) => {
         const regex = new RegExp(`^${key}=.*$`, 'm');
@@ -234,8 +243,8 @@ router.post(
 
       logger.info('Node .env file updated from Laravel', { updated });
 
-      // Determine if restart is needed (HOST or PORT changed)
-      const restartRequired = updated.includes('SERVER_HOST') || updated.includes('SERVER_PORT');
+      // Determine if restart is needed only when HOST or PORT actually changed.
+      const restartRequired = hostChanged || portChanged;
 
       return successResponse(res, 200, 'Environment file updated successfully', {
         updated,
