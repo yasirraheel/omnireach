@@ -167,7 +167,7 @@ class WhatsAppController extends Controller
             }
             $contactCount = count($contacts);
             $logs = collect($contacts)
-                        ->map(function ($contact, $index) use ($user, $method, $gatewayId, $modifiedRequest, &$contactCount) {
+                        ->map(function ($contact, $index) use ($user, $dispatchUser, $method, $gatewayId, $modifiedRequest, &$contactCount) {
                             $messageData = [
                                 'message_body' => Arr::get($contact, "message"),
                             ];
