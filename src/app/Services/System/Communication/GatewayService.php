@@ -29,6 +29,7 @@ use App\Services\System\TemplateService;
 use App\Exceptions\ApplicationException;
 use App\Http\Utility\Api\ApiJsonResponse;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Builder;
 use App\Http\Requests\ManageAndroidSimRequest;
 use Illuminate\Pagination\LengthAwarePaginator;
 use App\Enums\System\Gateway\SmsGatewayTypeEnum;
