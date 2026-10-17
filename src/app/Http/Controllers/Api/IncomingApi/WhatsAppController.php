@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\IncomingApi;
 
 use App\Models\User;
 use App\Models\Admin;
+use App\Models\Gateway;
 use Illuminate\Support\Arr;
 use Illuminate\Http\Request;
 use App\Managers\GatewayManager;
@@ -81,7 +82,7 @@ class WhatsAppController extends Controller
 
             // Use gateway preference based on user type (Admin uses site_settings, User uses their preference)
             if ($user instanceof Admin) {
-                $gatewayId = site_settings('api_whatsapp_gateway_id') ?: "-1";
+                $gatewayId = $this->resolveAdminGatewayId();
             } else {
                 $gatewayId = $user && $user->api_whatsapp_gateway_id ? $user->api_whatsapp_gateway_id : "-1";
             }
@@ -280,7 +281,7 @@ class WhatsAppController extends Controller
 
             // Use gateway preference based on user type (Admin uses site_settings, User uses their preference)
             if ($user instanceof Admin) {
-                $gatewayId = site_settings('api_whatsapp_gateway_id') ?: "-1";
+                $gatewayId = $this->resolveAdminGatewayId();
             } else {
                 $gatewayId = $user && $user->api_whatsapp_gateway_id ? $user->api_whatsapp_gateway_id : "-1";
             }
@@ -369,6 +370,25 @@ class WhatsAppController extends Controller
 
         // Return admin if authenticated as admin, otherwise user
         return $admin ?? $user;
+    }
+
+    /**
+     * Resolve the configured global Node gateway, falling back to an active
+     * global WhatsApp gateway when the saved setting references a deleted or
+     * inactive record.
+     */
+    protected function resolveAdminGatewayId(): int|string
+    {
+        $configuredId = site_settings('api_whatsapp_gateway_id');
+        $query = Gateway::query()
+            ->whereNull('user_id')
+            ->where('channel', ChannelTypeEnum::WHATSAPP)
+            ->where('type', WhatsAppGatewayTypeEnum::NODE->value)
+            ->active();
+
+        return $query->whereKey($configuredId)->value('id')
+            ?? $query->orderByDesc('is_default')->orderByDesc('id')->value('id')
+            ?? '-1';
     }
 
     /**
