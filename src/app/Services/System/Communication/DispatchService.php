@@ -684,11 +684,11 @@ class DispatchService
 
                          $logs->chunk($maxBatchSize)
                                    ->filter(fn($chunk) => count($chunk) >= $minBatchSize)
-                                   ->map(function ($chunk) use ($gatewayId, $dispatchId, $dispatchType, $userId, $channel, $pipe, &$batches, $delay, &$logCounter) {
+                                   ->map(function ($chunk) use ($gatewayId, $dispatchId, $dispatchType, $userId, $channel, $pipe, &$batches, $delayPerMessage, &$logCounter) {
 
                                         $logCounter++;
                                         $ids      = collect($chunk)->pluck('id')->toArray();
-                                        $delay    = $delay * $logCounter;
+                                        $delay    = $delayPerMessage * $logCounter;
 
                                         $this->storeDispatchDelay($gatewayId, $channel->value, $dispatchId, $dispatchType, $delay, $userId);
                                         $job = ProcessDispatchLogBatch::dispatch($ids, $channel, $pipe, false)
