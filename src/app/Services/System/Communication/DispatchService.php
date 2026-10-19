@@ -357,13 +357,13 @@ class DispatchService
                                                                  })->all();
 
                               // Determine if this is a single message (1 contact, not scheduled, not campaign)
-                              // A one-off API notification should be dispatched immediately for
-                              // both SMS and WhatsApp. Bulk/campaign sends remain queued so their
-                              // gateway rate limits are preserved.
+                              // Keep one-off SMS notifications immediate for fast feedback.
+                              // WhatsApp notifications stay on the queued path so dispatch logs
+                              // are committed before the gateway sends the message.
                               $isSingleMessage = $totalLogCount === 1
                                    && !$isCampaign
                                    && !$scheduleAt
-                                   && in_array($type, [ChannelTypeEnum::SMS, ChannelTypeEnum::WHATSAPP], true);
+                                   && $type === ChannelTypeEnum::SMS;
                               $dispatchResult = null;
 
                               if ($totalLogCount <= 1000 && !$isCampaign && !$scheduleAt) {
@@ -552,12 +552,12 @@ class DispatchService
 
           $totalLogs = count($gatewayLogs);
 
-          // Single message detection: 1 log, not from API batch, force sync enabled
-          // Send synchronously for instant feedback
+          // Only one-off SMS messages are sent synchronously. WhatsApp messages must use the
+          // queued path because the dispatch transaction must be committed before sending.
           $isSingleMessage = $totalLogs === 1
                && ($apiLogCount === null || $apiLogCount <= 1)
                && $forceSync
-               && in_array($channel, [ChannelTypeEnum::SMS, ChannelTypeEnum::WHATSAPP], true);
+               && $channel === ChannelTypeEnum::SMS;
 
           if ($isSingleMessage) {
                return $this->dispatchSingleMessageSync($gatewayLogs, $channel, $pipe);
